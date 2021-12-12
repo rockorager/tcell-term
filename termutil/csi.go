@@ -5,6 +5,8 @@ import (
 	"log"
 	"strconv"
 	"strings"
+
+	"github.com/gdamore/tcell/v2"
 )
 
 func parseCSI(readChan chan MeasuredRune) (final rune, params []string, intermediate []rune, raw []rune) {
@@ -904,52 +906,54 @@ func (t *Terminal) sgrSequenceHandler(params []string) bool {
 
 		p := strings.Replace(strings.Replace(params[i], "[", "", -1), "]", "", -1)
 
+		attr := t.GetActiveBuffer().getCursorAttr()
 		switch p {
 		case "00", "0", "":
-			attr := t.GetActiveBuffer().getCursorAttr()
-			*attr = CellAttributes{}
+			*attr = tcell.Style{}
 		case "1", "01":
-			t.GetActiveBuffer().getCursorAttr().bold = true
+			*attr = attr.Bold(true)
 		case "2", "02":
-			t.GetActiveBuffer().getCursorAttr().dim = true
+			*attr = attr.Dim(true)
 		case "3", "03":
-			t.GetActiveBuffer().getCursorAttr().italic = true
+			*attr = attr.Italic(true)
 		case "4", "04":
-			t.GetActiveBuffer().getCursorAttr().underline = true
+			*attr = attr.Underline(true)
 		case "5", "05":
-			t.GetActiveBuffer().getCursorAttr().blink = true
+			*attr = attr.Blink(true)
 		case "7", "07":
-			t.GetActiveBuffer().getCursorAttr().inverse = true
+			*attr = attr.Reverse(true)
 		case "8", "08":
-			t.GetActiveBuffer().getCursorAttr().hidden = true
+			//*attr = attr.Hidden( true)
 		case "9", "09":
-			t.GetActiveBuffer().getCursorAttr().strikethrough = true
+			*attr = attr.StrikeThrough(true)
 		case "21":
-			t.GetActiveBuffer().getCursorAttr().bold = false
+			*attr = attr.Bold(false)
 		case "22":
-			t.GetActiveBuffer().getCursorAttr().dim = false
+			*attr = attr.Dim(false)
 		case "23":
-			t.GetActiveBuffer().getCursorAttr().italic = false
+			*attr = attr.Italic(false)
 		case "24":
-			t.GetActiveBuffer().getCursorAttr().underline = false
+			*attr = attr.Underline(false)
 		case "25":
-			t.GetActiveBuffer().getCursorAttr().blink = false
+			*attr = attr.Blink(false)
 		case "27":
-			t.GetActiveBuffer().getCursorAttr().inverse = false
+			*attr = attr.Reverse(false)
 		case "28":
-			t.GetActiveBuffer().getCursorAttr().hidden = false
+			//*attr = attr.Hidden( false)
 		case "29":
-			t.GetActiveBuffer().getCursorAttr().strikethrough = false
+			*attr = attr.StrikeThrough(false)
 		case "38": // set foreground
-			t.GetActiveBuffer().getCursorAttr().fgColour, _ = t.theme.ColourFromAnsi(params[i+1:], false)
+			fg, _ := t.theme.ColourFromAnsi(params[i+1:])
+			*attr = attr.Foreground(fg)
 			return false
 		case "48": // set background
-			t.GetActiveBuffer().getCursorAttr().bgColour, _ = t.theme.ColourFromAnsi(params[i+1:], true)
+			bg, _ := t.theme.ColourFromAnsi(params[i+1:])
+			*attr = attr.Background(bg)
 			return false
 		case "39":
-			t.GetActiveBuffer().getCursorAttr().fgColour = t.theme.DefaultForeground()
+			*attr = attr.Foreground(t.theme.DefaultForeground())
 		case "49":
-			t.GetActiveBuffer().getCursorAttr().bgColour = t.theme.DefaultBackground()
+			*attr = attr.Background(t.theme.DefaultBackground())
 		default:
 			bi, err := strconv.Atoi(p)
 			if err != nil {
@@ -958,9 +962,9 @@ func (t *Terminal) sgrSequenceHandler(params []string) bool {
 			i := byte(bi)
 			switch true {
 			case i >= 30 && i <= 37, i >= 90 && i <= 97:
-				t.GetActiveBuffer().getCursorAttr().fgColour = t.theme.ColourFrom4Bit(i)
+				*attr = attr.Foreground(t.theme.ColourFrom4Bit(i))
 			case i >= 40 && i <= 47, i >= 100 && i <= 107:
-				t.GetActiveBuffer().getCursorAttr().bgColour = t.theme.ColourFrom4Bit(i)
+				*attr = attr.Background(t.theme.ColourFrom4Bit(i))
 			}
 
 		}

@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"os/exec"
 
@@ -119,7 +118,6 @@ func (t *Terminal) SetSize(rows, cols uint16) error {
 
 // Run starts the terminal/shell proxying process
 func (t *Terminal) Run(c *exec.Cmd, updateChan chan struct{}, rows uint16, cols uint16) error {
-	log.Println("RUN", c)
 	t.updateChan = updateChan
 	c.Env = append(os.Environ(), "TERM=xterm-256color")
 

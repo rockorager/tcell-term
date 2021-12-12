@@ -1,22 +1,25 @@
 package termutil
 
-import "image/color"
+import (
+	"github.com/gdamore/tcell/v2"
+)
 
 type Cell struct {
 	r    MeasuredRune
-	attr CellAttributes
-}
-
-func (cell *Cell) Attr() CellAttributes {
-	return cell.attr
+	attr tcell.Style
 }
 
 func (cell *Cell) Rune() MeasuredRune {
 	return cell.r
 }
 
-func (cell *Cell) Fg() color.Color {
-	if cell.Attr().inverse {
+func (cell *Cell) Style() tcell.Style {
+	return cell.attr
+}
+
+/*
+func (cell *Cell) Fg() tcell.Color {
+	if cell.attr.inverse {
 		return cell.attr.bgColour
 	}
 	return cell.attr.fgColour
@@ -42,16 +45,17 @@ func (cell *Cell) Strikethrough() bool {
 	return cell.attr.strikethrough
 }
 
-func (cell *Cell) Bg() color.Color {
-	if cell.Attr().inverse {
+func (cell *Cell) Bg() tcell.Color {
+	if cell.attr.inverse {
 		return cell.attr.fgColour
 	}
 	return cell.attr.bgColour
 }
+*/
 
-func (cell *Cell) erase(bgColour color.Color) {
+func (cell *Cell) erase(bgColour tcell.Color) {
 	cell.setRune(MeasuredRune{Rune: 0})
-	cell.attr.bgColour = bgColour
+	cell.attr = cell.attr.Background(bgColour)
 }
 
 func (cell *Cell) setRune(r MeasuredRune) {

@@ -2,8 +2,9 @@ package termutil
 
 import (
 	"image"
-	"image/color"
 	"sync"
+
+	"github.com/gdamore/tcell/v2"
 )
 
 const TabSize = 8
@@ -23,7 +24,7 @@ const (
 type Buffer struct {
 	lines                 []Line
 	savedCursorPos        Position
-	savedCursorAttr       *CellAttributes
+	savedCursorAttr       *tcell.Style
 	cursorShape           CursorShape
 	savedCharsets         []*map[rune]rune
 	savedCurrentCharset   int
@@ -32,7 +33,7 @@ type Buffer struct {
 	viewWidth             uint16
 	viewHeight            uint16
 	cursorPosition        Position // raw
-	cursorAttr            CellAttributes
+	cursorAttr            tcell.Style
 	scrollLinesFromBottom uint
 	maxLines              uint64
 	tabStops              []uint16
@@ -66,7 +67,7 @@ type Position struct {
 }
 
 // NewBuffer creates a new terminal buffer
-func NewBuffer(width, height uint16, maxLines uint64, fg color.Color, bg color.Color) *Buffer {
+func NewBuffer(width, height uint16, maxLines uint64, fg tcell.Color, bg tcell.Color) *Buffer {
 	b := &Buffer{
 		lines:        []Line{},
 		viewHeight:   height,
@@ -74,11 +75,8 @@ func NewBuffer(width, height uint16, maxLines uint64, fg color.Color, bg color.C
 		maxLines:     maxLines,
 		topMargin:    0,
 		bottomMargin: uint(height - 1),
-		cursorAttr: CellAttributes{
-			fgColour: fg,
-			bgColour: bg,
-		},
-		charsets: []*map[rune]rune{nil, nil},
+		cursorAttr:   tcell.StyleDefault.Foreground(fg).Background(bg),
+		charsets:     []*map[rune]rune{nil, nil},
 		modes: Modes{
 			LineFeedMode:   true,
 			AutoWrap:       true,
@@ -180,7 +178,7 @@ func (buffer *Buffer) restoreCursor() {
 	}
 }
 
-func (buffer *Buffer) getCursorAttr() *CellAttributes {
+func (buffer *Buffer) getCursorAttr() *tcell.Style {
 	return &buffer.cursorAttr
 }
 
@@ -689,9 +687,10 @@ func (buffer *Buffer) eraseLine() {
 func (buffer *Buffer) eraseLineToCursor() {
 	buffer.clearSixelsAtRawLine(buffer.cursorPosition.Line)
 	line := buffer.getCurrentLine()
+	_, bg, _ := buffer.cursorAttr.Decompose()
 	for i := 0; i <= int(buffer.cursorPosition.Col); i++ {
 		if i < len(line.cells) {
-			line.cells[i].erase(buffer.cursorAttr.bgColour)
+			line.cells[i].erase(bg)
 		}
 	}
 }
@@ -742,8 +741,9 @@ func (buffer *Buffer) eraseCharacters(n int) {
 		max = len(line.cells)
 	}
 
+	_, bg, _ := buffer.cursorAttr.Decompose()
 	for i := int(buffer.cursorPosition.Col); i < max; i++ {
-		line.cells[i].erase(buffer.cursorAttr.bgColour)
+		line.cells[i].erase(bg)
 	}
 }
 
@@ -766,11 +766,12 @@ func (buffer *Buffer) eraseDisplayFromCursor() {
 func (buffer *Buffer) eraseDisplayToCursor() {
 	line := buffer.getCurrentLine()
 
+	_, bg, _ := buffer.cursorAttr.Decompose()
 	for i := 0; i <= int(buffer.cursorPosition.Col); i++ {
 		if i >= len(line.cells) {
 			break
 		}
-		line.cells[i].erase(buffer.cursorAttr.bgColour)
+		line.cells[i].erase(bg)
 	}
 
 	cursorVY := buffer.convertRawLineToViewLine(buffer.cursorPosition.Line)
@@ -806,12 +807,12 @@ func (buffer *Buffer) resetVerticalMargins(height uint) {
 func (buffer *Buffer) defaultCell(applyEffects bool) Cell {
 	attr := buffer.cursorAttr
 	if !applyEffects {
-		attr.blink = false
-		attr.bold = false
-		attr.dim = false
-		attr.inverse = false
-		attr.underline = false
-		attr.dim = false
+		attr = attr.Blink(false)
+		attr = attr.Bold(false)
+		attr = attr.Dim(false)
+		attr = attr.Reverse(false)
+		attr = attr.Underline(false)
+		attr = attr.Dim(false)
 	}
 	return Cell{attr: attr}
 }

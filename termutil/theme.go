@@ -2,8 +2,9 @@ package termutil
 
 import (
 	"fmt"
-	"image/color"
 	"strconv"
+
+	"github.com/gdamore/tcell/v2"
 )
 
 type Colour uint8
@@ -35,7 +36,7 @@ const (
 )
 
 type Theme struct {
-	colourMap map[Colour]color.Color
+	colourMap map[Colour]tcell.Color
 }
 
 var (
@@ -75,140 +76,88 @@ var (
 	}
 )
 
-func (t *Theme) ColourFrom4Bit(code uint8) color.Color {
+func (t *Theme) ColourFrom4Bit(code uint8) tcell.Color {
 	colour, ok := map4Bit[code]
 	if !ok {
-		return color.Black
+		return tcell.ColorBlack
 	}
 	return t.colourMap[colour]
 }
 
-func (t *Theme) DefaultBackground() color.Color {
+func (t *Theme) DefaultBackground() tcell.Color {
 	c, ok := t.colourMap[ColourBackground]
 	if !ok {
-		return color.RGBA{0, 0, 0, 0xff}
+		return tcell.ColorBlack
 	}
 	return c
 }
 
-func (t *Theme) DefaultForeground() color.Color {
+func (t *Theme) DefaultForeground() tcell.Color {
 	c, ok := t.colourMap[ColourForeground]
 	if !ok {
-		return color.RGBA{255, 255, 255, 0xff}
+		return tcell.ColorWhite
 	}
 	return c
 }
 
-func (t *Theme) SelectionBackground() color.Color {
-	c, ok := t.colourMap[ColourSelectionBackground]
-	if !ok {
-		return color.RGBA{0, 0, 0, 0xff}
-	}
-	return c
-}
-
-func (t *Theme) SelectionForeground() color.Color {
-	c, ok := t.colourMap[ColourSelectionForeground]
-	if !ok {
-		return color.RGBA{255, 255, 255, 0xff}
-	}
-	return c
-}
-
-func (t *Theme) CursorBackground() color.Color {
+func (t *Theme) CursorBackground() tcell.Color {
 	c, ok := t.colourMap[ColourCursorBackground]
 	if !ok {
-		return color.RGBA{255, 255, 255, 0xff}
+		return tcell.ColorWhite
 	}
 	return c
 }
 
-func (t *Theme) CursorForeground() color.Color {
+func (t *Theme) CursorForeground() tcell.Color {
 	c, ok := t.colourMap[ColourCursorForeground]
 	if !ok {
-		return color.RGBA{0, 0, 0, 0xff}
+		return tcell.ColorBlack
 	}
 	return c
 }
 
-func (t *Theme) ColourFrom8Bit(n string) (color.Color, error) {
-
+func (t *Theme) ColourFrom8Bit(n string) (tcell.Color, error) {
 	index, err := strconv.Atoi(n)
 	if err != nil {
-		return nil, err
+		return tcell.ColorDefault, err
 	}
-
-	if index < 16 {
-		return t.colourMap[Colour(index)], nil
-	}
-
-	if index >= 232 {
-		c := ((index - 232) * 0xff) / 0x18
-		return color.RGBA{
-			R: byte(c),
-			G: byte(c),
-			B: byte(c),
-			A: 0xff,
-		}, nil
-	}
-
-	var colour color.RGBA
-	colour.A = 0xff
-	indexR := ((index - 16) / 36)
-	if indexR > 0 {
-		colour.R = uint8(55 + indexR*40)
-	}
-	indexG := (((index - 16) % 36) / 6)
-	if indexG > 0 {
-		colour.G = uint8(55 + indexG*40)
-	}
-	indexB := ((index - 16) % 6)
-	if indexB > 0 {
-		colour.B = uint8(55 + indexB*40)
-	}
-
-	return colour, nil
+	return tcell.PaletteColor(index), nil
 }
 
-func (t *Theme) ColourFrom24Bit(r, g, b string) (color.Color, error) {
+func (t *Theme) ColourFrom24Bit(r, g, b string) (tcell.Color, error) {
 	ri, err := strconv.Atoi(r)
 	if err != nil {
-		return nil, err
+		return tcell.ColorDefault, err
 	}
 	gi, err := strconv.Atoi(g)
 	if err != nil {
-		return nil, err
+		return tcell.ColorDefault, err
 	}
 	bi, err := strconv.Atoi(b)
 	if err != nil {
-		return nil, err
+		return tcell.ColorDefault, err
 	}
-	return color.RGBA{
-		R: byte(ri),
-		G: byte(gi),
-		B: byte(bi),
-		A: 0xff,
-	}, nil
+	return tcell.NewRGBColor(int32(ri), int32(gi), int32(bi)), nil
 }
 
-func (t *Theme) ColourFromAnsi(ansi []string, bg bool) (color.Color, error) {
+func (t *Theme) ColourFromAnsi(ansi []string) (tcell.Color, error) {
 
 	if len(ansi) == 0 {
-		return nil, fmt.Errorf("invalid ansi colour code")
+		return tcell.ColorDefault, fmt.Errorf("invalid ansi colour code")
 	}
 
 	switch ansi[0] {
 	case "2":
 		if len(ansi) != 4 {
-			return nil, fmt.Errorf("invalid 24-bit ansi colour code")
+			return tcell.ColorDefault, fmt.Errorf("invalid 24-bit ansi colour code")
 		}
 		return t.ColourFrom24Bit(ansi[1], ansi[2], ansi[3])
 	case "5":
 		if len(ansi) != 2 {
-			return nil, fmt.Errorf("invalid 8-bit ansi colour code")
+			return tcell.ColorDefault, fmt.Errorf("invalid 8-bit ansi colour code")
 		}
 		return t.ColourFrom8Bit(ansi[1])
 	default:
-		return nil, fmt.Errorf("invalid ansi colour code")
+		return tcell.ColorDefault, fmt.Errorf("invalid ansi colour code")
 	}
 }

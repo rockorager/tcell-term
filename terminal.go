@@ -61,15 +61,7 @@ func (t *Terminal) Draw(s tcell.Screen, X, Y uint16) {
 				//s.SetContent(int(viewX+X), viewY+int(Y), ' ', nil, tcell.StyleDefault.Background(tcell.ColorBlack))
 				continue
 			}
-			style := tcell.StyleDefault.
-				Foreground(convertColor(cell.Fg(), tcell.ColorWhite)).
-				Background(convertColor(cell.Bg(), tcell.ColorBlack)).
-				Bold(cell.Bold()).
-				Dim(cell.Dim()).
-				Italic(cell.Italic()).
-				StrikeThrough(cell.Strikethrough()).
-				Underline(cell.Underline())
-			s.SetContent(int(viewX+X), viewY+int(Y), cell.Rune().Rune, nil, style)
+			s.SetContent(int(viewX+X), viewY+int(Y), cell.Rune().Rune, nil, cell.Style())
 		}
 	}
 	if buf.IsCursorVisible() {
