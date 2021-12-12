@@ -2,7 +2,6 @@ package main
 
 import (
 	"image/color"
-	"log"
 	"os/exec"
 
 	"git.sr.ht/~ghost08/tcell-term/termutil"
@@ -82,37 +81,40 @@ func convertColor(c color.Color, defaultColor tcell.Color) tcell.Color {
 type windowManipulator struct{}
 
 func (w *windowManipulator) State() termutil.WindowState {
-	log.Println("State")
 	return termutil.StateNormal
 }
-func (w *windowManipulator) Minimise()                { log.Println("Minimise") }
-func (w *windowManipulator) Maximise()                { log.Println("Maximise") }
-func (w *windowManipulator) Restore()                 { log.Println("Restore") }
-func (w *windowManipulator) SetTitle(title string)    { log.Println("SetTitle") }
-func (w *windowManipulator) Position() (int, int)     { log.Println("Position"); return 0, 0 }
-func (w *windowManipulator) SizeInPixels() (int, int) { log.Println("SizeInPixels"); return 1000, 1000 }
-func (w *windowManipulator) CellSizeInPixels() (int, int) {
-	log.Println("CellSizeInPixels")
-	return 10, 10
+func (w *windowManipulator) Minimise()             {}
+func (w *windowManipulator) Maximise()             {}
+func (w *windowManipulator) Restore()              {}
+func (w *windowManipulator) SetTitle(title string) {}
+func (w *windowManipulator) Position() (int, int)  { return 0, 0 }
+func (w *windowManipulator) SizeInPixels() (int, int) {
+	sz, _ := GetWinSize()
+	return int(sz.XPixel), int(sz.YPixel)
 }
-func (w *windowManipulator) SizeInChars() (int, int) { log.Println("SizeInChars"); return 1000, 1000 }
-func (w *windowManipulator) ResizeInPixels(int, int) { log.Println("ResizeInPixels") }
-func (w *windowManipulator) ResizeInChars(int, int)  { log.Println("ResizeInChars") }
+func (w *windowManipulator) CellSizeInPixels() (int, int) {
+	sz, _ := GetWinSize()
+	return int(sz.Cols / sz.XPixel), int(sz.Rows / sz.YPixel)
+}
+func (w *windowManipulator) SizeInChars() (int, int) {
+	sz, _ := GetWinSize()
+	return int(sz.Cols), int(sz.Rows)
+}
+func (w *windowManipulator) ResizeInPixels(int, int) {}
+func (w *windowManipulator) ResizeInChars(int, int)  {}
 func (w *windowManipulator) ScreenSizeInPixels() (int, int) {
-	log.Println("ScreenSizeInPixels")
-	return 1000, 1000
+	return w.SizeInPixels()
 }
 func (w *windowManipulator) ScreenSizeInChars() (int, int) {
-	log.Println("ScreenSizeInChars")
-	return 1000, 1000
+	return w.SizeInChars()
 }
-func (w *windowManipulator) Move(x, y int)              { log.Println("Move") }
-func (w *windowManipulator) IsFullscreen() bool         { log.Println("IsFullscreen"); return false }
-func (w *windowManipulator) SetFullscreen(enabled bool) { log.Println("SetFullscreen") }
-func (w *windowManipulator) GetTitle() string           { log.Println("GetTitle"); return "term" }
-func (w *windowManipulator) SaveTitleToStack()          { log.Println("SaveTitleToStack") }
-func (w *windowManipulator) RestoreTitleFromStack()     { log.Println("RestoreTitleFromStack") }
-func (w *windowManipulator) ReportError(err error)      { log.Println("ReportError") }
+func (w *windowManipulator) Move(x, y int)              {}
+func (w *windowManipulator) IsFullscreen() bool         { return false }
+func (w *windowManipulator) SetFullscreen(enabled bool) {}
+func (w *windowManipulator) GetTitle() string           { return "term" }
+func (w *windowManipulator) SaveTitleToStack()          {}
+func (w *windowManipulator) RestoreTitleFromStack()     {}
+func (w *windowManipulator) ReportError(err error)      {}
 
 func getCtrlCombinationKeyCode(ke *tcell.EventKey) string {
 	if keycode, ok := LINUX_CTRL_KEY_MAP[ke.Key()]; ok {

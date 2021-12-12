@@ -121,7 +121,7 @@ func main() {
 				case tcell.KeyEnter:
 					if term == nil {
 						term = New()
-						cmd := exec.Command("vim", "go.mod")
+						cmd := exec.Command("photont", "https://reddit.com/r/aww.rss")
 						go func() {
 							w, h := s.Size()
 							lh := h / 2
