@@ -23,6 +23,7 @@ var blui = int32(inc)
 var term *Terminal
 
 func makebox(s tcell.Screen) {
+	s.Clear()
 	w, h := s.Size()
 
 	if w == 0 || h == 0 {
@@ -68,7 +69,7 @@ func makebox(s tcell.Screen) {
 			}
 		}
 	} else {
-		term.Draw(s, 10, 10)
+		term.Draw(s, uint16(lx), uint16(ly))
 	}
 	s.Show()
 }
@@ -113,17 +114,22 @@ func main() {
 			case *tcell.EventKey:
 				switch ev.Key() {
 				case tcell.KeyEscape:
-					close(quit)
-					return
+					if term == nil {
+						close(quit)
+						return
+					}
 				case tcell.KeyEnter:
 					if term == nil {
 						term = New()
-						cmd := exec.Command("less", "terminal.go")
+						cmd := exec.Command("vim", "go.mod")
 						go func() {
-							term.Run(cmd, redraw, 40, 60)
-							if err := cmd.Wait(); err != nil {
+							w, h := s.Size()
+							lh := h / 2
+							lw := w / 2
+							if err := term.Run(cmd, redraw, uint16(lw), uint16(lh)); err != nil {
 								log.Println(err)
 							}
+							s.HideCursor()
 							term = nil
 						}()
 						continue

@@ -5,7 +5,7 @@ import (
 	"log"
 	"os/exec"
 
-	"git.sr.ht/~ghost08/vterm/termutil"
+	"git.sr.ht/~ghost08/tcell-term/termutil"
 	"github.com/gdamore/tcell/v2"
 )
 
@@ -33,7 +33,7 @@ func WithWindowManipulator(wm termutil.WindowManipulator) Option {
 }
 
 func (t *Terminal) Run(cmd *exec.Cmd, redrawChan chan struct{}, width, height uint16) error {
-	return t.term.Run(cmd, redrawChan, width, height)
+	return t.term.Run(cmd, redrawChan, height, width)
 }
 
 func (t *Terminal) Event(e tcell.Event) {
@@ -54,11 +54,11 @@ func (t *Terminal) Event(e tcell.Event) {
 
 func (t *Terminal) Draw(s tcell.Screen, X, Y uint16) {
 	buf := t.term.GetActiveBuffer()
-	for viewY := buf.ViewHeight() - 1; viewY >= 0; viewY-- {
+	for viewY := int(buf.ViewHeight()) - 1; viewY >= 0; viewY-- {
 		for viewX := uint16(0); viewX < buf.ViewWidth(); viewX++ {
 			cell := buf.GetCell(viewX, uint16(viewY))
 			if cell == nil {
-				s.SetContent(int(viewX+X), int(viewY+Y), ' ', nil, tcell.StyleDefault.Background(tcell.ColorBlack))
+				//s.SetContent(int(viewX+X), viewY+int(Y), ' ', nil, tcell.StyleDefault.Background(tcell.ColorBlack))
 				continue
 			}
 			style := tcell.StyleDefault.
@@ -69,10 +69,14 @@ func (t *Terminal) Draw(s tcell.Screen, X, Y uint16) {
 				Italic(cell.Italic()).
 				StrikeThrough(cell.Strikethrough()).
 				Underline(cell.Underline())
-			s.SetContent(int(viewX+X), int(viewY+Y), cell.Rune().Rune, nil, style)
+			s.SetContent(int(viewX+X), viewY+int(Y), cell.Rune().Rune, nil, style)
 		}
 	}
-	s.ShowCursor(int(buf.CursorColumn()+X), int(buf.CursorLine()+Y))
+	if buf.IsCursorVisible() {
+		s.ShowCursor(int(buf.CursorColumn()+X), int(buf.CursorLine()+Y))
+	} else {
+		s.HideCursor()
+	}
 }
 
 func convertColor(c color.Color, defaultColor tcell.Color) tcell.Color {
