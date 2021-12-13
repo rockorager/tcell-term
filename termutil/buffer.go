@@ -78,10 +78,9 @@ func NewBuffer(width, height uint16, maxLines uint64, fg tcell.Color, bg tcell.C
 		cursorAttr:   tcell.StyleDefault.Foreground(fg).Background(bg),
 		charsets:     []*map[rune]rune{nil, nil},
 		modes: Modes{
-			LineFeedMode:   true,
-			AutoWrap:       true,
-			ShowCursor:     true,
-			SixelScrolling: true,
+			LineFeedMode: true,
+			AutoWrap:     true,
+			ShowCursor:   true,
 		},
 		cursorShape: CursorShapeDefault,
 	}
@@ -670,9 +669,6 @@ func (buffer *Buffer) getViewLine(index uint16) *Line {
 }
 
 func (buffer *Buffer) eraseLine() {
-
-	buffer.clearSixelsAtRawLine(buffer.cursorPosition.Line)
-
 	line := buffer.getCurrentLine()
 
 	for i := 0; i < int(buffer.viewWidth); i++ {
@@ -685,7 +681,6 @@ func (buffer *Buffer) eraseLine() {
 }
 
 func (buffer *Buffer) eraseLineToCursor() {
-	buffer.clearSixelsAtRawLine(buffer.cursorPosition.Line)
 	line := buffer.getCurrentLine()
 	_, bg, _ := buffer.cursorAttr.Decompose()
 	for i := 0; i <= int(buffer.cursorPosition.Col); i++ {
@@ -696,7 +691,6 @@ func (buffer *Buffer) eraseLineToCursor() {
 }
 
 func (buffer *Buffer) eraseLineFromCursor() {
-	buffer.clearSixelsAtRawLine(buffer.cursorPosition.Line)
 	line := buffer.getCurrentLine()
 
 	for i := buffer.cursorPosition.Col; i < buffer.viewWidth; i++ {
@@ -711,7 +705,6 @@ func (buffer *Buffer) eraseLineFromCursor() {
 func (buffer *Buffer) eraseDisplay() {
 	for i := uint16(0); i < (buffer.ViewHeight()); i++ {
 		rawLine := buffer.convertViewLineToRawLine(i)
-		buffer.clearSixelsAtRawLine(rawLine)
 		if int(rawLine) < len(buffer.lines) {
 			buffer.lines[int(rawLine)].cells = []Cell{}
 		}
@@ -758,7 +751,6 @@ func (buffer *Buffer) eraseDisplayFromCursor() {
 	line.cells = line.cells[:max]
 
 	for rawLine := buffer.cursorPosition.Line + 1; int(rawLine) < len(buffer.lines); rawLine++ {
-		buffer.clearSixelsAtRawLine(rawLine)
 		buffer.lines[int(rawLine)].cells = []Cell{}
 	}
 }
@@ -778,7 +770,6 @@ func (buffer *Buffer) eraseDisplayToCursor() {
 
 	for i := uint16(0); i < cursorVY; i++ {
 		rawLine := buffer.convertViewLineToRawLine(i)
-		buffer.clearSixelsAtRawLine(rawLine)
 		if int(rawLine) < len(buffer.lines) {
 			buffer.lines[int(rawLine)].cells = []Cell{}
 		}

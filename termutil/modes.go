@@ -9,7 +9,6 @@ type Modes struct {
 	LineFeedMode          bool
 	ScreenMode            bool // DECSCNM (black on white background)
 	AutoWrap              bool
-	SixelScrolling        bool // DECSDM
 	BracketedPasteMode    bool
 }
 

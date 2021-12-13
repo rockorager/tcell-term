@@ -1,4 +1,4 @@
-package main
+package tcellterm
 
 import (
 	"fmt"
@@ -33,7 +33,7 @@ func GetWinSize() (sz WinSize, err error) {
 	//if pixels are 0, try CSI
 	if sz.XPixel == 0 || sz.YPixel == 0 {
 		fmt.Printf("\033[18t")
-		fmt.Scanf("\033[%d;%dR", &sz.Rows, &sz.Cols)
+		fmt.Scanf("\xb1[%d;%dt", &sz.Rows, &sz.Cols)
 		//get terminal resolution
 		fmt.Printf("\033[14t")
 		fmt.Scanf("\033[4;%d;%dt", &sz.YPixel, &sz.XPixel)

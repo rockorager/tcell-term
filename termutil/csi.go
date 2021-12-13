@@ -790,7 +790,7 @@ func (t *Terminal) csiSetMode(modes string, enabled bool) bool {
 		case "?2004":
 			t.activeBuffer.modes.BracketedPasteMode = enabled
 		case "?80":
-			t.activeBuffer.modes.SixelScrolling = enabled
+			//t.activeBuffer.modes.SixelScrolling = enabled
 		default:
 			log.Printf("Unsupported CSI mode %s = %t", modeStr, enabled)
 		}

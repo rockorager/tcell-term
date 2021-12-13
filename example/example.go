@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"time"
 
+	tcellterm "git.sr.ht/~ghost08/tcell-term"
 	"github.com/gdamore/tcell/v2"
 )
 
@@ -20,7 +21,7 @@ var inc = int32(8) // rate of color change
 var redi = int32(inc)
 var grni = int32(inc)
 var blui = int32(inc)
-var term *Terminal
+var term *tcellterm.Terminal
 
 func makebox(s tcell.Screen) {
 	s.Clear()
@@ -120,8 +121,8 @@ func main() {
 					}
 				case tcell.KeyEnter:
 					if term == nil {
-						term = New()
-						cmd := exec.Command("photont", "https://reddit.com/r/aww.rss")
+						term = tcellterm.New()
+						cmd := exec.Command("less", "/etc/hosts")
 						go func() {
 							w, h := s.Size()
 							lh := h / 2
@@ -139,6 +140,12 @@ func main() {
 					term.Event(ev)
 				}
 			case *tcell.EventResize:
+				if term != nil {
+					w, h := s.Size()
+					lh := h / 2
+					lw := w / 2
+					term.Resize(lw, lh)
+				}
 				s.Sync()
 			}
 		}

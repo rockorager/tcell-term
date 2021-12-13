@@ -1,7 +1,9 @@
-package main
+package tcellterm
 
 import (
+	"fmt"
 	"image/color"
+	"os"
 	"os/exec"
 
 	"git.sr.ht/~ghost08/tcell-term/termutil"
@@ -68,6 +70,14 @@ func (t *Terminal) Draw(s tcell.Screen, X, Y uint16) {
 	} else {
 		s.HideCursor()
 	}
+	for _, s := range buf.GetVisibleSixels() {
+		fmt.Printf("\033[%d;%dH", s.Sixel.Y+uint64(Y), s.Sixel.X+X)
+		// DECSIXEL Introducer(\033P0;0;8q) + DECGRA ("1;1): Set Raster Attributes
+		os.Stdout.Write([]byte{0x1b, 0x50, 0x30, 0x3b, 0x30, 0x3b, 0x38, 0x71, 0x22, 0x31, 0x3b, 0x31})
+		os.Stdout.Write(s.Sixel.Data)
+		// string terminator(ST)
+		os.Stdout.Write([]byte{0x1b, 0x5c})
+	}
 }
 
 func convertColor(c color.Color, defaultColor tcell.Color) tcell.Color {
@@ -76,6 +86,10 @@ func convertColor(c color.Color, defaultColor tcell.Color) tcell.Color {
 	}
 	r, g, b, _ := c.RGBA()
 	return tcell.NewRGBColor(int32(r), int32(g), int32(b))
+}
+
+func (t *Terminal) Resize(width, height int) {
+	t.term.SetSize(uint16(height), uint16(width))
 }
 
 type windowManipulator struct{}
