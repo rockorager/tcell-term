@@ -28,6 +28,7 @@ go func() {
 		ev := s.PollEvent()
 		switch ev := ev.(type) {
 		case *tcell.EventKey:
+			//send key events to the terminal
 			term.Event(ev)
 		case *tcell.EventResize:
 			w, h := s.Size()
@@ -40,6 +41,7 @@ go func() {
 }()
 
 //draw loop
+loop:
 for {
 	select {
 	case <-quit:
