@@ -8,6 +8,7 @@ if err != nil {
 	panic(err)
 }
 quit := make(chan struct{})
+termRedraw := make(chan struct{})
 
 w, h := s.Size()
 cmd := exec.Cmd("less", "/etc/hosts")
@@ -17,7 +18,7 @@ term := tcellterm.New()
 
 //run command in term
 go func() {
-	term.Run(cmd, termWidth, termHeight)
+	term.Run(cmd, termRedraw, termWidth, termHeight)
 	cmd.Wait()
 	quit <- struct{}{}
 }()
@@ -34,6 +35,7 @@ go func() {
 			w, h := s.Size()
 			lh := h / 2
 			lw := w / 2
+			//resize event for the terminal
 			term.Resize(lw, lh)
 			s.Sync()
 		}
@@ -46,7 +48,8 @@ for {
 	select {
 	case <-quit:
 		break loop
-	case <-time.After(time.Millisecond * 50):
+	//terminal wants to be redrawn
+	case <-termRedraw:
 	}
 	term.Draw(s, termX, termY)
 }
