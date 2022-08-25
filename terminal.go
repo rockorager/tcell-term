@@ -67,6 +67,7 @@ func (t *Terminal) Draw(s tcell.Screen, X, Y uint16) {
 	}
 	if buf.IsCursorVisible() {
 		s.ShowCursor(int(buf.CursorColumn()+X), int(buf.CursorLine()+Y))
+		s.SetCursorStyle(tcell.CursorStyle(t.term.GetActiveBuffer().GetCursorShape()))
 	} else {
 		s.HideCursor()
 	}
