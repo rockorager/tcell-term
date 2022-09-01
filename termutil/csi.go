@@ -29,7 +29,12 @@ CSI:
 		}
 	}
 
-	unprocessed := strings.Split(param, ";")
+	unprocessed := []string{}
+	if strings.Contains(param, ":") {
+		unprocessed = strings.Split(param, ":")
+	} else {
+		unprocessed = strings.Split(param, ";")
+	}
 	for _, par := range unprocessed {
 		if par != "" {
 			par = strings.TrimLeft(par, "0")
