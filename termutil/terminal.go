@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"time"
 
 	"github.com/creack/pty"
 	"golang.org/x/term"
@@ -30,6 +31,7 @@ type Terminal struct {
 	mouseMode         MouseMode
 	mouseExtMode      MouseExtMode
 	theme             *Theme
+	renderDebounce    *time.Timer
 }
 
 // NewTerminal creates a new terminal instance
@@ -151,10 +153,14 @@ func (t *Terminal) Run(c *exec.Cmd, updateChan chan struct{}, rows uint16, cols 
 }
 
 func (t *Terminal) requestRender() {
-	select {
-	case t.updateChan <- struct{}{}:
-	default:
+	if t.renderDebounce != nil {
+		t.renderDebounce.Stop()
 	}
+	// 4 milliseconds = 250Hz. Probably don't need to render faster than
+	// that
+	t.renderDebounce = time.AfterFunc(4*time.Millisecond, func() {
+		t.updateChan <- struct{}{}
+	})
 }
 
 func (t *Terminal) process() {
