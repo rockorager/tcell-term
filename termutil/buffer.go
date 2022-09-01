@@ -123,7 +123,6 @@ func (buffer *Buffer) getAreaScrollRange() (top uint64, bottom uint64) {
 }
 
 func (buffer *Buffer) areaScrollDown(lines uint16) {
-
 	// NOTE: bottom is exclusive
 	top, bottom := buffer.getAreaScrollRange()
 
@@ -138,7 +137,6 @@ func (buffer *Buffer) areaScrollDown(lines uint16) {
 }
 
 func (buffer *Buffer) areaScrollUp(lines uint16) {
-
 	// NOTE: bottom is exclusive
 	top, bottom := buffer.getAreaScrollRange()
 
@@ -278,7 +276,6 @@ func (buffer *Buffer) deleteLine() {
 }
 
 func (buffer *Buffer) insertLine() {
-
 	if !buffer.InScrollableRegion() {
 		pos := buffer.RawLine()
 		maxLines := buffer.GetMaxLines()
@@ -319,7 +316,6 @@ func (buffer *Buffer) insertLine() {
 }
 
 func (buffer *Buffer) insertBlankCharacters(count int) {
-
 	index := int(buffer.RawLine())
 	for i := 0; i < count; i++ {
 		cells := buffer.lines[index].cells
@@ -328,7 +324,6 @@ func (buffer *Buffer) insertBlankCharacters(count int) {
 }
 
 func (buffer *Buffer) insertLines(count int) {
-
 	if buffer.HasScrollableRegion() && !buffer.InScrollableRegion() {
 		// should have no effect outside of scrollable region
 		return
@@ -339,11 +334,9 @@ func (buffer *Buffer) insertLines(count int) {
 	for i := 0; i < count; i++ {
 		buffer.insertLine()
 	}
-
 }
 
 func (buffer *Buffer) deleteLines(count int) {
-
 	if buffer.HasScrollableRegion() && !buffer.InScrollableRegion() {
 		// should have no effect outside of scrollable region
 		return
@@ -354,11 +347,9 @@ func (buffer *Buffer) deleteLines(count int) {
 	for i := 0; i < count; i++ {
 		buffer.deleteLine()
 	}
-
 }
 
 func (buffer *Buffer) index() {
-
 	// This sequence causes the active position to move downward one line without changing the column position.
 	// If the active position is at the bottom margin, a scroll up is performed."
 
@@ -387,7 +378,6 @@ func (buffer *Buffer) index() {
 }
 
 func (buffer *Buffer) reverseIndex() {
-
 	cursorVY := buffer.convertRawLineToViewLine(buffer.cursorPosition.Line)
 
 	if uint(cursorVY) == buffer.topMargin {
@@ -399,7 +389,6 @@ func (buffer *Buffer) reverseIndex() {
 
 // write will write a rune to the terminal at the position of the cursor, and increment the cursor position
 func (buffer *Buffer) write(runes ...MeasuredRune) {
-
 	// scroll to bottom on input
 	buffer.scrollLinesFromBottom = 0
 
@@ -448,7 +437,6 @@ func (buffer *Buffer) write(runes ...MeasuredRune) {
 				// no more room on line and wrapping is disabled
 				return
 			}
-
 		} else {
 
 			for int(buffer.CursorColumn()) >= len(line.cells) {
@@ -480,7 +468,6 @@ func (buffer *Buffer) inDoWrap() bool {
 }
 
 func (buffer *Buffer) backspace() {
-
 	if buffer.cursorPosition.Col == 0 {
 		line := buffer.getCurrentLine()
 		if line.wrapped {
@@ -495,7 +482,6 @@ func (buffer *Buffer) backspace() {
 }
 
 func (buffer *Buffer) carriageReturn() {
-
 	cursorVY := buffer.convertRawLineToViewLine(buffer.cursorPosition.Line)
 
 	for {
@@ -514,7 +500,6 @@ func (buffer *Buffer) carriageReturn() {
 }
 
 func (buffer *Buffer) tab() {
-
 	tabStop := buffer.getNextTabStopAfter(buffer.cursorPosition.Col)
 	for buffer.cursorPosition.Col < tabStop && buffer.cursorPosition.Col < buffer.viewWidth-1 { // @todo rightMargin
 		buffer.write(MeasuredRune{Rune: ' ', Width: 1})
@@ -523,7 +508,6 @@ func (buffer *Buffer) tab() {
 
 // return next tab stop x pos
 func (buffer *Buffer) getNextTabStopAfter(col uint16) uint16 {
-
 	defaultStop := col + (TabSize - (col % TabSize))
 	if defaultStop == col {
 		defaultStop += TabSize
@@ -562,7 +546,6 @@ func (buffer *Buffer) verticalTab() {
 }
 
 func (buffer *Buffer) newLineEx(forceCursorToMargin bool) {
-
 	if buffer.IsNewLineMode() || forceCursorToMargin {
 		buffer.cursorPosition.Col = 0
 	}
@@ -578,7 +561,6 @@ func (buffer *Buffer) newLineEx(forceCursorToMargin bool) {
 }
 
 func (buffer *Buffer) movePosition(x int16, y int16) {
-
 	var toX uint16
 	var toY uint16
 
@@ -599,7 +581,6 @@ func (buffer *Buffer) movePosition(x int16, y int16) {
 }
 
 func (buffer *Buffer) setPosition(col uint16, line uint16) {
-
 	useCol := col
 	useLine := line
 	maxLine := buffer.ViewHeight() - 1
@@ -649,7 +630,6 @@ func (buffer *Buffer) getCurrentLine() *Line {
 }
 
 func (buffer *Buffer) getViewLine(index uint16) *Line {
-
 	if index >= buffer.ViewHeight() {
 		return &buffer.lines[len(buffer.lines)-1]
 	}
@@ -712,7 +692,6 @@ func (buffer *Buffer) eraseDisplay() {
 }
 
 func (buffer *Buffer) deleteChars(n int) {
-
 	line := buffer.getCurrentLine()
 	if int(buffer.cursorPosition.Col) >= len(line.cells) {
 		return
@@ -726,7 +705,6 @@ func (buffer *Buffer) deleteChars(n int) {
 }
 
 func (buffer *Buffer) eraseCharacters(n int) {
-
 	line := buffer.getCurrentLine()
 
 	max := int(buffer.cursorPosition.Col) + n

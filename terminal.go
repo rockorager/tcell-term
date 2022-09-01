@@ -59,7 +59,7 @@ func (t *Terminal) Draw(s tcell.Screen, X, Y uint16) {
 		for viewX := uint16(0); viewX < buf.ViewWidth(); viewX++ {
 			cell := buf.GetCell(viewX, uint16(viewY))
 			if cell == nil {
-				//s.SetContent(int(viewX+X), viewY+int(Y), ' ', nil, tcell.StyleDefault.Background(tcell.ColorBlack))
+				// s.SetContent(int(viewX+X), viewY+int(Y), ' ', nil, tcell.StyleDefault.Background(tcell.ColorBlack))
 				continue
 			}
 			s.SetContent(int(viewX+X), viewY+int(Y), cell.Rune().Rune, nil, cell.Style())
@@ -107,10 +107,12 @@ func (w *windowManipulator) SizeInPixels() (int, int) {
 	sz, _ := GetWinSize()
 	return int(sz.XPixel), int(sz.YPixel)
 }
+
 func (w *windowManipulator) CellSizeInPixels() (int, int) {
 	sz, _ := GetWinSize()
 	return int(sz.Cols / sz.XPixel), int(sz.Rows / sz.YPixel)
 }
+
 func (w *windowManipulator) SizeInChars() (int, int) {
 	sz, _ := GetWinSize()
 	return int(sz.Cols), int(sz.Rows)
@@ -120,6 +122,7 @@ func (w *windowManipulator) ResizeInChars(int, int)  {}
 func (w *windowManipulator) ScreenSizeInPixels() (int, int) {
 	return w.SizeInPixels()
 }
+
 func (w *windowManipulator) ScreenSizeInChars() (int, int) {
 	return w.SizeInChars()
 }

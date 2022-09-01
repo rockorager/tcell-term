@@ -130,7 +130,6 @@ func (t *Terminal) handleCSI(readChan chan MeasuredRune) (renderRequired bool) {
 	_ = raw
 	log.Printf("UNKNOWN CSI P(%s) I(%s) %c", strings.Join(params, ";"), string(intermediate), final)
 	return false
-
 }
 
 type WindowState uint8
@@ -166,7 +165,6 @@ type WindowManipulator interface {
 }
 
 func (t *Terminal) csiWindowManipulation(params []string) (renderRequired bool) {
-
 	if t.windowManipulator == nil {
 		return false
 	}
@@ -177,7 +175,7 @@ func (t *Terminal) csiWindowManipulation(params []string) (renderRequired bool) 
 			t.windowManipulator.Restore()
 		case "2":
 			t.windowManipulator.Minimise()
-		case "3": //move window
+		case "3": // move window
 			if i+2 >= len(params) {
 				return false
 			}
@@ -185,7 +183,7 @@ func (t *Terminal) csiWindowManipulation(params []string) (renderRequired bool) 
 			y, _ := strconv.Atoi(params[i+2])
 			i += 2
 			t.windowManipulator.Move(x, y)
-		case "4": //resize h,w
+		case "4": // resize h,w
 			w, h := t.windowManipulator.SizeInPixels()
 			if i+1 < len(params) {
 				h, _ = strconv.Atoi(params[i+1])
@@ -309,7 +307,6 @@ func (t *Terminal) csiWindowManipulation(params []string) (renderRequired bool) 
 // CSI c
 // Send Device Attributes (Primary/Secondary/Tertiary DA)
 func (t *Terminal) csiSendDeviceAttributesHandler(params []string) (renderRequired bool) {
-
 	// we are VT100
 	// for DA1 we'll respond ?1;2
 	// for DA2 we'll respond >0;0;0
@@ -326,7 +323,6 @@ func (t *Terminal) csiSendDeviceAttributesHandler(params []string) (renderRequir
 // CSI n
 // Device Status Report (DSR)
 func (t *Terminal) csiDeviceStatusReportHandler(params []string) (renderRequired bool) {
-
 	if len(params) == 0 {
 		return false
 	}
@@ -411,7 +407,6 @@ func (t *Terminal) csiCursorBackwardHandler(params []string) (renderRequired boo
 // CSI E
 // Cursor Next Line Ps Times (default = 1) (CNL)
 func (t *Terminal) csiCursorNextLineHandler(params []string) (renderRequired bool) {
-
 	distance := 1
 	if len(params) > 0 {
 		var err error
@@ -429,7 +424,6 @@ func (t *Terminal) csiCursorNextLineHandler(params []string) (renderRequired boo
 // CSI F
 // Cursor Preceding Line Ps Times (default = 1) (CPL)
 func (t *Terminal) csiCursorPrecedingLineHandler(params []string) (renderRequired bool) {
-
 	distance := 1
 	if len(params) > 0 {
 		var err error
@@ -673,7 +667,6 @@ func (t *Terminal) csiSetModes(modes []string, enabled bool) bool {
 }
 
 func parseModes(mode string) []string {
-
 	var output []string
 
 	if mode == "" {
@@ -695,9 +688,7 @@ func parseModes(mode string) []string {
 }
 
 func (t *Terminal) csiSetMode(modes string, enabled bool) bool {
-
 	for _, modeStr := range parseModes(modes) {
-
 		switch modeStr {
 		case "4":
 			t.activeBuffer.modes.ReplaceMode = !enabled
@@ -723,7 +714,7 @@ func (t *Terminal) csiSetMode(modes string, enabled bool) bool {
 			t.activeBuffer.modes.OriginMode = enabled
 		case "?7":
 			// auto-wrap mode
-			//DECAWM
+			// DECAWM
 			t.activeBuffer.modes.AutoWrap = enabled
 		case "?9":
 			if enabled {
@@ -795,7 +786,7 @@ func (t *Terminal) csiSetMode(modes string, enabled bool) bool {
 		case "?2004":
 			t.activeBuffer.modes.BracketedPasteMode = enabled
 		case "?80":
-			//t.activeBuffer.modes.SixelScrolling = enabled
+			// t.activeBuffer.modes.SixelScrolling = enabled
 		default:
 			log.Printf("Unsupported CSI mode %s = %t", modeStr, enabled)
 		}
@@ -880,14 +871,13 @@ func (t *Terminal) csiEraseInDisplayHandler(params []string) (renderRequired boo
 // CSI K
 // Erase in Line (EL), VT100
 func (t *Terminal) csiEraseInLineHandler(params []string) (renderRequired bool) {
-
 	n := "0"
 	if len(params) > 0 {
 		n = params[0]
 	}
 
 	switch n {
-	case "0", "": //erase adter cursor
+	case "0", "": // erase adter cursor
 		t.GetActiveBuffer().eraseLineFromCursor()
 	case "1": // erase to cursor inclusive
 		t.GetActiveBuffer().eraseLineToCursor()
@@ -902,7 +892,6 @@ func (t *Terminal) csiEraseInLineHandler(params []string) (renderRequired bool) 
 // CSI m
 // Character Attributes (SGR)
 func (t *Terminal) sgrSequenceHandler(params []string) bool {
-
 	if len(params) == 0 {
 		params = []string{"0"}
 	}
@@ -928,7 +917,7 @@ func (t *Terminal) sgrSequenceHandler(params []string) bool {
 		case "7", "07":
 			*attr = attr.Reverse(true)
 		case "8", "08":
-			//*attr = attr.Hidden( true)
+			// *attr = attr.Hidden(true)
 		case "9", "09":
 			*attr = attr.StrikeThrough(true)
 		case "21":

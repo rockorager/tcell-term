@@ -39,42 +39,40 @@ type Theme struct {
 	colourMap map[Colour]tcell.Color
 }
 
-var (
-	map4Bit = map[uint8]Colour{
-		30:  ColourBlack,
-		31:  ColourRed,
-		32:  ColourGreen,
-		33:  ColourYellow,
-		34:  ColourBlue,
-		35:  ColourMagenta,
-		36:  ColourCyan,
-		37:  ColourWhite,
-		90:  ColourBrightBlack,
-		91:  ColourBrightRed,
-		92:  ColourBrightGreen,
-		93:  ColourBrightYellow,
-		94:  ColourBrightBlue,
-		95:  ColourBrightMagenta,
-		96:  ColourBrightCyan,
-		97:  ColourBrightWhite,
-		40:  ColourBlack,
-		41:  ColourRed,
-		42:  ColourGreen,
-		43:  ColourYellow,
-		44:  ColourBlue,
-		45:  ColourMagenta,
-		46:  ColourCyan,
-		47:  ColourWhite,
-		100: ColourBrightBlack,
-		101: ColourBrightRed,
-		102: ColourBrightGreen,
-		103: ColourBrightYellow,
-		104: ColourBrightBlue,
-		105: ColourBrightMagenta,
-		106: ColourBrightCyan,
-		107: ColourBrightWhite,
-	}
-)
+var map4Bit = map[uint8]Colour{
+	30:  ColourBlack,
+	31:  ColourRed,
+	32:  ColourGreen,
+	33:  ColourYellow,
+	34:  ColourBlue,
+	35:  ColourMagenta,
+	36:  ColourCyan,
+	37:  ColourWhite,
+	90:  ColourBrightBlack,
+	91:  ColourBrightRed,
+	92:  ColourBrightGreen,
+	93:  ColourBrightYellow,
+	94:  ColourBrightBlue,
+	95:  ColourBrightMagenta,
+	96:  ColourBrightCyan,
+	97:  ColourBrightWhite,
+	40:  ColourBlack,
+	41:  ColourRed,
+	42:  ColourGreen,
+	43:  ColourYellow,
+	44:  ColourBlue,
+	45:  ColourMagenta,
+	46:  ColourCyan,
+	47:  ColourWhite,
+	100: ColourBrightBlack,
+	101: ColourBrightRed,
+	102: ColourBrightGreen,
+	103: ColourBrightYellow,
+	104: ColourBrightBlue,
+	105: ColourBrightMagenta,
+	106: ColourBrightCyan,
+	107: ColourBrightWhite,
+}
 
 func (t *Theme) ColourFrom4Bit(code uint8) tcell.Color {
 	colour, ok := map4Bit[code]
@@ -135,7 +133,6 @@ func (t *Theme) ColourFrom24Bit(r, g, b string) (tcell.Color, error) {
 }
 
 func (t *Theme) ColourFromAnsi(ansi []string) (tcell.Color, error) {
-
 	if len(ansi) == 0 {
 		return tcell.ColorDefault, fmt.Errorf("invalid ansi colour code")
 	}

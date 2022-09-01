@@ -175,33 +175,31 @@ func (t *Terminal) process() {
 }
 
 func (t *Terminal) processRunes(runes ...MeasuredRune) (renderRequired bool) {
-
 	for _, r := range runes {
-
 		switch r.Rune {
-		case 0x05: //enq
+		case 0x05: // enq
 			continue
-		case 0x07: //bell
-			//DING DING DING
+		case 0x07: // bell
+			// DING DING DING
 			continue
-		case 0x8: //backspace
+		case 0x8: // backspace
 			t.GetActiveBuffer().backspace()
 			renderRequired = true
-		case 0x9: //tab
+		case 0x9: // tab
 			t.GetActiveBuffer().tab()
 			renderRequired = true
-		case 0xa, 0xc: //newLine/form feed
+		case 0xa, 0xc: // newLine/form feed
 			t.GetActiveBuffer().newLine()
 			renderRequired = true
-		case 0xb: //vertical tab
+		case 0xb: // vertical tab
 			t.GetActiveBuffer().verticalTab()
 			renderRequired = true
-		case 0xd: //carriageReturn
+		case 0xd: // carriageReturn
 			t.GetActiveBuffer().carriageReturn()
 			renderRequired = true
-		case 0xe: //shiftOut
+		case 0xe: // shiftOut
 			t.GetActiveBuffer().currentCharset = 1
-		case 0xf: //shiftIn
+		case 0xf: // shiftIn
 			t.GetActiveBuffer().currentCharset = 0
 		default:
 			if r.Rune < 0x20 {
