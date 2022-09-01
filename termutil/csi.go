@@ -896,10 +896,7 @@ func (t *Terminal) sgrSequenceHandler(params []string) bool {
 		params = []string{"0"}
 	}
 
-	for i := range params {
-
-		p := strings.Replace(strings.Replace(params[i], "[", "", -1), "]", "", -1)
-
+	for i, p := range params {
 		attr := t.GetActiveBuffer().getCursorAttr()
 		switch p {
 		case "00", "0", "":
@@ -937,12 +934,20 @@ func (t *Terminal) sgrSequenceHandler(params []string) bool {
 		case "29":
 			*attr = attr.StrikeThrough(false)
 		case "38": // set foreground
-			fg, _ := t.theme.ColourFromAnsi(params[i+1:])
-			*attr = attr.Foreground(fg)
+			fg, err := t.theme.ColourFromAnsi(params[i+1:])
+			if err != nil {
+				*attr = attr.Foreground(t.theme.DefaultForeground())
+			} else {
+				*attr = attr.Foreground(fg)
+			}
 			return false
 		case "48": // set background
-			bg, _ := t.theme.ColourFromAnsi(params[i+1:])
-			*attr = attr.Background(bg)
+			bg, err := t.theme.ColourFromAnsi(params[i+1:])
+			if err != nil {
+				*attr = attr.Background(t.theme.DefaultBackground())
+			} else {
+				*attr = attr.Background(bg)
+			}
 			return false
 		case "39":
 			*attr = attr.Foreground(t.theme.DefaultForeground())
