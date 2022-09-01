@@ -75,7 +75,7 @@ func NewBuffer(width, height uint16, maxLines uint64, fg tcell.Color, bg tcell.C
 		maxLines:     maxLines,
 		topMargin:    0,
 		bottomMargin: uint(height - 1),
-		cursorAttr:   tcell.StyleDefault.Foreground(fg).Background(bg),
+		cursorAttr:   tcell.StyleDefault,
 		charsets:     []*map[rune]rune{nil, nil},
 		modes: Modes{
 			LineFeedMode: true,
