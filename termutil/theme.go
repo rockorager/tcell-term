@@ -85,19 +85,13 @@ func (t *Theme) ColourFrom4Bit(code uint8) tcell.Color {
 }
 
 func (t *Theme) DefaultBackground() tcell.Color {
-	c, ok := t.colourMap[ColourBackground]
-	if !ok {
-		return tcell.ColorBlack
-	}
-	return c
+	_, bg, _ := tcell.StyleDefault.Decompose()
+	return bg
 }
 
 func (t *Theme) DefaultForeground() tcell.Color {
-	c, ok := t.colourMap[ColourForeground]
-	if !ok {
-		return tcell.ColorWhite
-	}
-	return c
+	fg, _, _ := tcell.StyleDefault.Decompose()
+	return fg
 }
 
 func (t *Theme) CursorBackground() tcell.Color {
