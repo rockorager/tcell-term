@@ -79,7 +79,7 @@ func (t *Theme) ColourFrom4Bit(code uint8) tcell.Color {
 	if !ok {
 		return tcell.ColorBlack
 	}
-	return t.colourMap[colour]
+	return tcell.PaletteColor(int(colour))
 }
 
 func (t *Theme) DefaultBackground() tcell.Color {
