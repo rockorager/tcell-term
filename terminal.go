@@ -54,6 +54,7 @@ func (t *Terminal) Event(e tcell.Event) {
 }
 
 func (t *Terminal) Draw(s tcell.Screen, X, Y uint16) {
+	s.Clear()
 	buf := t.term.GetActiveBuffer()
 	for viewY := int(buf.ViewHeight()) - 1; viewY >= 0; viewY-- {
 		for viewX := uint16(0); viewX < buf.ViewWidth(); viewX++ {
