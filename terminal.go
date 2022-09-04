@@ -120,8 +120,9 @@ func convertColor(c color.Color, defaultColor tcell.Color) tcell.Color {
 	return tcell.NewRGBColor(int32(r), int32(g), int32(b))
 }
 
-func (t *Terminal) Resize(width, height int) {
-	t.term.SetSize(uint16(height), uint16(width))
+func (t *Terminal) Resize() {
+	w, h := t.vp.Size()
+	t.term.SetSize(uint16(h), uint16(w))
 }
 
 type windowManipulator struct{}
