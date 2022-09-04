@@ -12,6 +12,11 @@ import (
 
 type Terminal struct {
 	term *termutil.Terminal
+
+	curX     int
+	curY     int
+	curStyle tcell.CursorStyle
+	curVis   bool
 }
 
 func New(opts ...Option) *Terminal {
@@ -67,10 +72,12 @@ func (t *Terminal) Draw(s tcell.Screen, X, Y uint16) {
 		}
 	}
 	if buf.IsCursorVisible() {
-		s.ShowCursor(int(buf.CursorColumn()+X), int(buf.CursorLine()+Y))
-		s.SetCursorStyle(tcell.CursorStyle(t.term.GetActiveBuffer().GetCursorShape()))
+		t.curVis = true
+		t.curX = int(buf.CursorColumn())
+		t.curY = int(buf.CursorLine())
+		t.curStyle = tcell.CursorStyle(t.term.GetActiveBuffer().GetCursorShape())
 	} else {
-		s.HideCursor()
+		t.curVis = false
 	}
 	for _, s := range buf.GetVisibleSixels() {
 		fmt.Printf("\033[%d;%dH", s.Sixel.Y+uint64(Y), s.Sixel.X+X)
@@ -80,6 +87,12 @@ func (t *Terminal) Draw(s tcell.Screen, X, Y uint16) {
 		// string terminator(ST)
 		os.Stdout.Write([]byte{0x1b, 0x5c})
 	}
+}
+
+// GetCursor returns if the cursor is visible, it's x and y position, and it's
+// style. If the cursor is not visible, the coordinates will be -1,-1
+func (t *Terminal) GetCursor() (bool, int, int, tcell.CursorStyle) {
+	return t.curVis, t.curX, t.curY, t.curStyle
 }
 
 func convertColor(c color.Color, defaultColor tcell.Color) tcell.Color {
