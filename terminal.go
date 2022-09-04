@@ -8,6 +8,7 @@ import (
 
 	"git.sr.ht/~ghost08/tcell-term/termutil"
 	"github.com/gdamore/tcell/v2"
+	"github.com/gdamore/tcell/v2/views"
 )
 
 type Terminal struct {
@@ -17,9 +18,22 @@ type Terminal struct {
 	curY     int
 	curStyle tcell.CursorStyle
 	curVis   bool
+
+	screen tcell.Screen
+	vp     views.View
 }
 
-func New(opts ...Option) *Terminal {
+func New(screen tcell.Screen, vp views.View, opts ...Option) *Terminal {
+	var err error
+	if screen == nil {
+		screen, err = tcell.NewScreen()
+		if err != nil {
+			panic(err)
+		}
+	}
+	if vp == nil {
+		vp = views.NewViewPort(screen, 0, 0, -1, -1)
+	}
 	t := &Terminal{
 		term: termutil.New(),
 	}
@@ -38,8 +52,9 @@ func WithWindowManipulator(wm termutil.WindowManipulator) Option {
 	}
 }
 
-func (t *Terminal) Run(cmd *exec.Cmd, redrawChan chan struct{}, width, height uint16) error {
-	return t.term.Run(cmd, redrawChan, height, width)
+func (t *Terminal) Run(cmd *exec.Cmd, redrawChan chan struct{}) error {
+	w, h := t.vp.Size()
+	return t.term.Run(cmd, redrawChan, uint16(h), uint16(w))
 }
 
 func (t *Terminal) Event(e tcell.Event) {
@@ -58,8 +73,8 @@ func (t *Terminal) Event(e tcell.Event) {
 	}
 }
 
-func (t *Terminal) Draw(s tcell.Screen, X, Y uint16) {
-	s.Clear()
+func (t *Terminal) Draw() {
+	t.vp.Clear()
 	buf := t.term.GetActiveBuffer()
 	for viewY := int(buf.ViewHeight()) - 1; viewY >= 0; viewY-- {
 		for viewX := uint16(0); viewX < buf.ViewWidth(); viewX++ {
@@ -68,7 +83,7 @@ func (t *Terminal) Draw(s tcell.Screen, X, Y uint16) {
 				// s.SetContent(int(viewX+X), viewY+int(Y), ' ', nil, tcell.StyleDefault.Background(tcell.ColorBlack))
 				continue
 			}
-			s.SetContent(int(viewX+X), viewY+int(Y), cell.Rune().Rune, nil, cell.Style())
+			t.vp.SetContent(int(viewX), viewY, cell.Rune().Rune, nil, cell.Style())
 		}
 	}
 	if buf.IsCursorVisible() {
@@ -80,7 +95,7 @@ func (t *Terminal) Draw(s tcell.Screen, X, Y uint16) {
 		t.curVis = false
 	}
 	for _, s := range buf.GetVisibleSixels() {
-		fmt.Printf("\033[%d;%dH", s.Sixel.Y+uint64(Y), s.Sixel.X+X)
+		fmt.Printf("\033[%d;%dH", s.Sixel.Y, s.Sixel.X)
 		// DECSIXEL Introducer(\033P0;0;8q) + DECGRA ("1;1): Set Raster Attributes
 		os.Stdout.Write([]byte{0x1b, 0x50, 0x30, 0x3b, 0x30, 0x3b, 0x38, 0x71, 0x22, 0x31, 0x3b, 0x31})
 		os.Stdout.Write(s.Sixel.Data)
