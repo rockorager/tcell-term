@@ -57,7 +57,7 @@ func (t *Terminal) Run(cmd *exec.Cmd, redrawChan chan struct{}) error {
 	return t.term.Run(cmd, redrawChan, uint16(h), uint16(w))
 }
 
-func (t *Terminal) Event(e tcell.Event) {
+func (t *Terminal) HandleEvent(e tcell.Event) bool {
 	switch e := e.(type) {
 	case *tcell.EventKey:
 		var keycode string
@@ -70,7 +70,9 @@ func (t *Terminal) Event(e tcell.Event) {
 			keycode = getKeyCode(e)
 		}
 		t.term.WriteToPty([]byte(keycode))
+		return true
 	}
+	return false
 }
 
 func (t *Terminal) Draw() {
