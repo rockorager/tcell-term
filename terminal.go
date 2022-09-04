@@ -21,6 +21,8 @@ type Terminal struct {
 
 	screen tcell.Screen
 	view     views.View
+
+	views.WidgetWatchers
 }
 
 func New(screen tcell.Screen, view views.View, opts ...Option) *Terminal {
@@ -61,6 +63,10 @@ func (t *Terminal) Run(cmd *exec.Cmd, redrawChan chan struct{}) error {
 
 func (t *Terminal) SetView(view views.View) {
 	t.view = view
+}
+
+func (t *Terminal) Size() (int, int) {
+	return t.view.Size()
 }
 
 func (t *Terminal) HandleEvent(e tcell.Event) bool {
