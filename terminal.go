@@ -5,6 +5,7 @@ import (
 	"image/color"
 	"os"
 	"os/exec"
+	"time"
 
 	"git.sr.ht/~ghost08/tcell-term/termutil"
 	"github.com/gdamore/tcell/v2"
@@ -20,7 +21,9 @@ type Terminal struct {
 	curVis   bool
 
 	screen tcell.Screen
-	view     views.View
+	view   views.View
+
+	redrawChan chan struct{}
 
 	views.WidgetWatchers
 }
@@ -37,9 +40,9 @@ func New(screen tcell.Screen, view views.View, opts ...Option) *Terminal {
 		view = views.NewViewPort(screen, 0, 0, -1, -1)
 	}
 	t := &Terminal{
-		term: termutil.New(),
+		term:   termutil.New(),
 		screen: screen,
-		view: view,
+		view:   view,
 	}
 	t.term.SetWindowManipulator(&windowManipulator{})
 	for _, opt := range opts {
@@ -56,10 +59,33 @@ func WithWindowManipulator(wm termutil.WindowManipulator) Option {
 	}
 }
 
-func (t *Terminal) Run(cmd *exec.Cmd, redrawChan chan struct{}) error {
+func (t *Terminal) Run(cmd *exec.Cmd) error {
 	w, h := t.view.Size()
-	return t.term.Run(cmd, redrawChan, uint16(h), uint16(w))
+	t.redrawChan = make(chan struct{}, 10)
+	go func() {
+		for {
+			select {
+			case <-t.redrawChan:
+				t.screen.PostEvent(NewRedrawEvent())
+				// term.Draw()
+				// s.Show()
+			}
+		}
+	}()
+	return t.term.Run(cmd, t.redrawChan, uint16(h), uint16(w))
 }
+
+type RedrawEvent struct {
+	when time.Time
+}
+
+func NewRedrawEvent() *RedrawEvent {
+	return &RedrawEvent{
+		when: time.Now(),
+	}
+}
+
+func (e RedrawEvent) When() time.Time { return e.when }
 
 func (t *Terminal) SetView(view views.View) {
 	t.view = view
