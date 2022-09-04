@@ -1,3 +1,4 @@
+//go:build ignore
 // +build ignore
 
 package main
@@ -34,60 +35,49 @@ func main() {
 	s.Clear()
 
 	quit := make(chan struct{})
-	redraw := make(chan struct{}, 10)
 	var term *tcellterm.Terminal
-	if term == nil {
-		term = tcellterm.New()
+	term = tcellterm.New(s, nil)
 
-		cmd := exec.Command("zsh")
-		go func() {
-			w, h := s.Size()
-			lh := h
-			lw := w
-			if err := term.Run(cmd, redraw, uint16(lw), uint16(lh)); err != nil {
-				log.Println(err)
-			}
-			s.HideCursor()
-			term = nil
-			close(quit)
-		}()
-	}
+	cmd := exec.Command("zsh")
 	go func() {
-		for {
-			ev := s.PollEvent()
-			switch ev := ev.(type) {
-			case *tcell.EventKey:
-				switch ev.Key() {
-				case tcell.KeyCtrlC:
-					close(quit)
-					return
-				}
-				if term != nil {
-					term.Event(ev)
-				}
-			case *tcell.EventResize:
-				if term != nil {
-					w, h := s.Size()
-					lh := h
-					lw := w
-					term.Resize(lw, lh)
-				}
-				s.Sync()
-			}
+		if err := term.Run(cmd); err != nil {
+			log.Println(err)
 		}
+		close(quit)
+		s.Fini()
+		os.Stdout.Write(logbuf.Bytes())
+		os.Exit(0)
 	}()
-
-loop:
 	for {
-		select {
-		case <-quit:
-			break loop
-		case <-redraw:
-			term.Draw(s, 0, 0)
+		ev := s.PollEvent()
+		switch ev := ev.(type) {
+		case *tcell.EventKey:
+			switch ev.Key() {
+			case tcell.KeyCtrlC:
+				close(quit)
+				s.Fini()
+				os.Stdout.Write(logbuf.Bytes())
+				return
+			}
+			if term != nil {
+				term.HandleEvent(ev)
+			}
+		case *tcell.EventResize:
+			if term != nil {
+				term.Resize()
+			}
+			s.Sync()
+		case *tcellterm.RedrawEvent:
+			term.Draw()
+			vis, x, y, style := term.GetCursor()
+			if vis {
+				s.ShowCursor(x, y)
+				s.SetCursorStyle(style)
+			} else {
+				s.HideCursor()
+			}
 			s.Show()
 		}
-	}
 
-	s.Fini()
-	os.Stdout.Write(logbuf.Bytes())
+	}
 }
