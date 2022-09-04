@@ -20,10 +20,10 @@ type Terminal struct {
 	curVis   bool
 
 	screen tcell.Screen
-	vp     views.View
+	view     views.View
 }
 
-func New(screen tcell.Screen, vp views.View, opts ...Option) *Terminal {
+func New(screen tcell.Screen, view views.View, opts ...Option) *Terminal {
 	var err error
 	if screen == nil {
 		screen, err = tcell.NewScreen()
@@ -31,11 +31,13 @@ func New(screen tcell.Screen, vp views.View, opts ...Option) *Terminal {
 			panic(err)
 		}
 	}
-	if vp == nil {
-		vp = views.NewViewPort(screen, 0, 0, -1, -1)
+	if view == nil {
+		view = views.NewViewPort(screen, 0, 0, -1, -1)
 	}
 	t := &Terminal{
 		term: termutil.New(),
+		screen: screen,
+		view: view,
 	}
 	t.term.SetWindowManipulator(&windowManipulator{})
 	for _, opt := range opts {
@@ -53,8 +55,12 @@ func WithWindowManipulator(wm termutil.WindowManipulator) Option {
 }
 
 func (t *Terminal) Run(cmd *exec.Cmd, redrawChan chan struct{}) error {
-	w, h := t.vp.Size()
+	w, h := t.view.Size()
 	return t.term.Run(cmd, redrawChan, uint16(h), uint16(w))
+}
+
+func (t *Terminal) SetView(view views.View) {
+	t.view = view
 }
 
 func (t *Terminal) HandleEvent(e tcell.Event) bool {
@@ -76,7 +82,7 @@ func (t *Terminal) HandleEvent(e tcell.Event) bool {
 }
 
 func (t *Terminal) Draw() {
-	t.vp.Clear()
+	t.view.Clear()
 	buf := t.term.GetActiveBuffer()
 	for viewY := int(buf.ViewHeight()) - 1; viewY >= 0; viewY-- {
 		for viewX := uint16(0); viewX < buf.ViewWidth(); viewX++ {
@@ -85,7 +91,7 @@ func (t *Terminal) Draw() {
 				// s.SetContent(int(viewX+X), viewY+int(Y), ' ', nil, tcell.StyleDefault.Background(tcell.ColorBlack))
 				continue
 			}
-			t.vp.SetContent(int(viewX), viewY, cell.Rune().Rune, nil, cell.Style())
+			t.view.SetContent(int(viewX), viewY, cell.Rune().Rune, nil, cell.Style())
 		}
 	}
 	if buf.IsCursorVisible() {
@@ -121,7 +127,7 @@ func convertColor(c color.Color, defaultColor tcell.Color) tcell.Color {
 }
 
 func (t *Terminal) Resize() {
-	w, h := t.vp.Size()
+	w, h := t.view.Size()
 	t.term.SetSize(uint16(h), uint16(w))
 }
 
