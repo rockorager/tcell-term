@@ -20,8 +20,7 @@ type Terminal struct {
 	curStyle tcell.CursorStyle
 	curVis   bool
 
-	screen tcell.Screen
-	view   views.View
+	view views.View
 
 	close bool
 
@@ -77,11 +76,16 @@ func (t *Terminal) Close() {
 	t.term.Pty().Close()
 }
 
+// SetView sets the view for the terminal to draw to. This must be set before
+// calling Draw
 func (t *Terminal) SetView(view views.View) {
 	t.view = view
 }
 
 func (t *Terminal) Size() (int, int) {
+	if t.view == nil {
+		return 0, 0
+	}
 	return t.view.Size()
 }
 
@@ -104,6 +108,9 @@ func (t *Terminal) HandleEvent(e tcell.Event) bool {
 }
 
 func (t *Terminal) Draw() {
+	if t.view == nil {
+		return
+	}
 	buf := t.term.GetActiveBuffer()
 	w, h := t.view.Size()
 	for viewY := 0; viewY < h; viewY++ {
@@ -148,7 +155,11 @@ func convertColor(c color.Color, defaultColor tcell.Color) tcell.Color {
 	return tcell.NewRGBColor(int32(r), int32(g), int32(b))
 }
 
+// Resize resizes the terminal to the dimensions of the terminals view
 func (t *Terminal) Resize() {
+	if t.view == nil {
+		return
+	}
 	w, h := t.view.Size()
 	t.term.SetSize(uint16(h), uint16(w))
 }

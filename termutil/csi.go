@@ -2,7 +2,6 @@ package termutil
 
 import (
 	"fmt"
-	"log"
 	"strconv"
 	"strings"
 
@@ -128,7 +127,7 @@ func (t *Terminal) handleCSI(readChan chan MeasuredRune) (renderRequired bool) {
 	// if this is an unknown CSI sequence, write it to stdout as we can't handle it?
 	//_ = t.writeToRealStdOut(append([]rune{0x1b, '['}, raw...)...)
 	_ = raw
-	log.Printf("UNKNOWN CSI P(%s) I(%s) %c", strings.Join(params, ";"), string(intermediate), final)
+	// log.Printf("UNKNOWN CSI P(%s) I(%s) %c", strings.Join(params, ";"), string(intermediate), final)
 	return false
 }
 
@@ -788,7 +787,7 @@ func (t *Terminal) csiSetMode(modes string, enabled bool) bool {
 		case "?80":
 			// t.activeBuffer.modes.SixelScrolling = enabled
 		default:
-			log.Printf("Unsupported CSI mode %s = %t", modeStr, enabled)
+			// log.Printf("Unsupported CSI mode %s = %t", modeStr, enabled)
 		}
 	}
 	return false
