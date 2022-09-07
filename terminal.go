@@ -23,7 +23,7 @@ type Terminal struct {
 	screen tcell.Screen
 	view   views.View
 
-	redrawChan chan struct{}
+	close bool
 
 	views.WidgetWatchers
 }
@@ -49,31 +49,33 @@ func WithWindowManipulator(wm termutil.WindowManipulator) Option {
 
 func (t *Terminal) Run(cmd *exec.Cmd) error {
 	w, h := t.view.Size()
-	t.redrawChan = make(chan struct{}, 10)
+	tmr := time.NewTicker(16 * time.Millisecond)
 	go func() {
 		for {
 			select {
-			case <-t.redrawChan:
-				t.screen.PostEvent(NewRedrawEvent())
-				// term.Draw()
-				// s.Show()
+			case <-tmr.C:
+				if t.close {
+					return
+				}
+				if t.term.ShouldRedraw() {
+					t.PostEventWidgetContent(t)
+					t.term.SetRedraw(false)
+				}
 			}
 		}
 	}()
-	return t.term.Run(cmd, t.redrawChan, uint16(h), uint16(w))
-}
-
-type RedrawEvent struct {
-	when time.Time
-}
-
-func NewRedrawEvent() *RedrawEvent {
-	return &RedrawEvent{
-		when: time.Now(),
+	err := t.term.Run(cmd, uint16(h), uint16(w))
+	if err != nil {
+		return err
 	}
+	t.Close()
+	return nil
 }
 
-func (e RedrawEvent) When() time.Time { return e.when }
+func (t *Terminal) Close() {
+	t.close = true
+	t.term.Pty().Close()
+}
 
 func (t *Terminal) SetView(view views.View) {
 	t.view = view

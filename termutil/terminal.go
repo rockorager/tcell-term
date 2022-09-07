@@ -23,22 +23,19 @@ const (
 type Terminal struct {
 	windowManipulator WindowManipulator
 	pty               *os.File
-	updateChan        chan struct{}
 	processChan       chan MeasuredRune
-	closeChan         chan struct{}
 	buffers           []*Buffer
 	activeBuffer      *Buffer
 	mouseMode         MouseMode
 	mouseExtMode      MouseExtMode
 	theme             *Theme
-	renderDebounce    *time.Timer
+	redraw            bool
 }
 
 // NewTerminal creates a new terminal instance
 func New(options ...Option) *Terminal {
 	term := &Terminal{
 		processChan: make(chan MeasuredRune, 0xffff),
-		closeChan:   make(chan struct{}),
 		theme:       &Theme{},
 	}
 	for _, opt := range options {
@@ -119,8 +116,7 @@ func (t *Terminal) SetSize(rows, cols uint16) error {
 }
 
 // Run starts the terminal/shell proxying process
-func (t *Terminal) Run(c *exec.Cmd, updateChan chan struct{}, rows uint16, cols uint16) error {
-	t.updateChan = updateChan
+func (t *Terminal) Run(c *exec.Cmd, rows uint16, cols uint16) error {
 	c.Env = append(os.Environ(), "TERM=xterm-256color")
 
 	// Start the command with a pty.
@@ -148,34 +144,29 @@ func (t *Terminal) Run(c *exec.Cmd, updateChan chan struct{}, rows uint16, cols 
 	go t.process()
 
 	_, _ = io.Copy(t, t.pty)
-	close(t.closeChan)
 	return nil
 }
 
-func (t *Terminal) requestRender() {
-	if t.renderDebounce != nil {
-		t.renderDebounce.Stop()
-	}
-	// 4 milliseconds = 250Hz. Probably don't need to render faster than
-	// that
-	t.renderDebounce = time.AfterFunc(4*time.Millisecond, func() {
-		t.updateChan <- struct{}{}
-	})
+func (t *Terminal) ShouldRedraw() bool {
+	return t.redraw
+}
+
+func (t *Terminal) SetRedraw(b bool) {
+	t.redraw = b
 }
 
 func (t *Terminal) process() {
 	for {
-		select {
-		case <-t.closeChan:
+		mr, ok := <-t.processChan
+		if !ok {
 			return
-		case mr := <-t.processChan:
-			if mr.Rune == 0x1b { // ANSI escape char, which means this is a sequence
-				if t.handleANSI(t.processChan) {
-					t.requestRender()
-				}
-			} else if t.processRunes(mr) { // otherwise it's just an individual rune we need to process
-				t.requestRender()
+		}
+		if mr.Rune == 0x1b { // ANSI escape char, which means this is a sequence
+			if t.handleANSI(t.processChan) {
+				t.SetRedraw(true)
 			}
+		} else if t.processRunes(mr) { // otherwise it's just an individual rune we need to process
+			t.SetRedraw(true)
 		}
 	}
 }
