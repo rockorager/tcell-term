@@ -972,7 +972,7 @@ func (t *Terminal) sgrSequenceHandler(params []string) bool {
 	x := t.GetActiveBuffer().CursorColumn()
 	y := t.GetActiveBuffer().CursorLine()
 	if cell := t.GetActiveBuffer().GetCell(x, y); cell != nil {
-		cell.attr = t.GetActiveBuffer().cursorAttr
+		cell.setStyle(t.GetActiveBuffer().cursorAttr)
 	}
 
 	return false
