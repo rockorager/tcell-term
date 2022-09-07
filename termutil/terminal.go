@@ -7,7 +7,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"time"
+	"syscall"
 
 	"github.com/creack/pty"
 	"golang.org/x/term"
@@ -116,12 +116,17 @@ func (t *Terminal) SetSize(rows, cols uint16) error {
 }
 
 // Run starts the terminal/shell proxying process
-func (t *Terminal) Run(c *exec.Cmd, rows uint16, cols uint16) error {
+func (t *Terminal) Run(c *exec.Cmd, rows uint16, cols uint16, attr *syscall.SysProcAttr) error {
 	c.Env = append(os.Environ(), "TERM=xterm-256color")
 
 	// Start the command with a pty.
 	var err error
-	t.pty, err = pty.Start(c)
+	// t.pty, err = pty.Start(c)
+	winsize := pty.Winsize{
+		Cols: cols,
+		Rows: rows,
+	}
+	t.pty, err = pty.StartWithAttrs(c, &winsize, &syscall.SysProcAttr{Setsid: true, Setctty: true, Ctty: 1})
 	if err != nil {
 		return err
 	}

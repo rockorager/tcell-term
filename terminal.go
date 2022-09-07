@@ -5,6 +5,7 @@ import (
 	"image/color"
 	"os"
 	"os/exec"
+	"syscall"
 	"time"
 
 	"git.sr.ht/~ghost08/tcell-term/termutil"
@@ -47,6 +48,14 @@ func WithWindowManipulator(wm termutil.WindowManipulator) Option {
 }
 
 func (t *Terminal) Run(cmd *exec.Cmd) error {
+	return t.run(cmd, &syscall.SysProcAttr{})
+}
+
+func (t *Terminal) RunWithAttrs(cmd *exec.Cmd, attr *syscall.SysProcAttr) error {
+	return t.run(cmd, attr)
+}
+
+func (t *Terminal) run(cmd *exec.Cmd, attr *syscall.SysProcAttr) error {
 	w, h := t.view.Size()
 	tmr := time.NewTicker(16 * time.Millisecond)
 	go func() {
@@ -63,7 +72,7 @@ func (t *Terminal) Run(cmd *exec.Cmd) error {
 			}
 		}
 	}()
-	err := t.term.Run(cmd, uint16(h), uint16(w))
+	err := t.term.Run(cmd, uint16(h), uint16(w), attr)
 	if err != nil {
 		return err
 	}
