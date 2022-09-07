@@ -273,48 +273,15 @@ func (buffer *Buffer) ViewHeight() uint16 {
 }
 
 func (buffer *Buffer) deleteLine() {
-	index := int(buffer.RawLine())
-	buffer.lines = buffer.lines[:index+copy(buffer.lines[index:], buffer.lines[index+1:])]
+	// see
+	// https://github.com/james4k/terminal/blob/b4bcb6ee7c08ae4930eecdeb1ba90073c5f40d71/state.go#L682
+	buffer.areaScrollUp(1)
 }
 
 func (buffer *Buffer) insertLine() {
-	if !buffer.InScrollableRegion() {
-		pos := buffer.RawLine()
-		maxLines := buffer.GetMaxLines()
-		newLineCount := uint64(len(buffer.lines) + 1)
-		if newLineCount > maxLines {
-			newLineCount = maxLines
-		}
-
-		out := make([]Line, newLineCount)
-		copy(
-			out[:pos-(uint64(len(buffer.lines))+1-newLineCount)],
-			buffer.lines[uint64(len(buffer.lines))+1-newLineCount:pos])
-		out[pos] = newLine()
-		copy(out[pos+1:], buffer.lines[pos:])
-		buffer.lines = out
-	} else {
-		topIndex := buffer.convertViewLineToRawLine(uint16(buffer.topMargin))
-		bottomIndex := buffer.convertViewLineToRawLine(uint16(buffer.bottomMargin))
-		before := buffer.lines[:topIndex]
-		after := buffer.lines[bottomIndex+1:]
-		out := make([]Line, len(buffer.lines))
-		copy(out[0:], before)
-
-		pos := buffer.RawLine()
-		for i := topIndex; i < bottomIndex; i++ {
-			if i < pos {
-				out[i] = buffer.lines[i]
-			} else {
-				out[i+1] = buffer.lines[i]
-			}
-		}
-
-		copy(out[bottomIndex+1:], after)
-
-		out[pos] = newLine()
-		buffer.lines = out
-	}
+	// see
+	// https://github.com/james4k/terminal/blob/b4bcb6ee7c08ae4930eecdeb1ba90073c5f40d71/state.go#L682
+	buffer.areaScrollDown(1)
 }
 
 func (buffer *Buffer) insertBlankCharacters(count int) {
