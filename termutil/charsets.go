@@ -54,7 +54,6 @@ func (t *Terminal) scsHandler(pty chan MeasuredRune, which int) bool {
 
 	cs, ok := charSets[b.Rune]
 	if ok {
-		//terminal.logger.Debugf("Selected charset %v into G%v", string(b), which)
 		t.activeBuffer.charsets[which] = cs
 		return false
 	}
