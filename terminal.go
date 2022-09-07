@@ -21,7 +21,7 @@ type Terminal struct {
 	curStyle tcell.CursorStyle
 	curVis   bool
 
-	view views.View
+	view     views.View
 	interval int
 
 	close bool
@@ -31,7 +31,7 @@ type Terminal struct {
 
 func New(opts ...Option) *Terminal {
 	t := &Terminal{
-		term: termutil.New(),
+		term:     termutil.New(),
 		interval: 8,
 	}
 	t.term.SetWindowManipulator(&windowManipulator{})
@@ -74,6 +74,7 @@ func (t *Terminal) RunWithAttrs(cmd *exec.Cmd, attr *syscall.SysProcAttr) error 
 func (t *Terminal) run(cmd *exec.Cmd, attr *syscall.SysProcAttr) error {
 	w, h := t.view.Size()
 	tmr := time.NewTicker(time.Duration(t.interval) * time.Millisecond)
+	eventCh := make(chan tcell.Event)
 	go func() {
 		for {
 			select {
@@ -85,15 +86,43 @@ func (t *Terminal) run(cmd *exec.Cmd, attr *syscall.SysProcAttr) error {
 					t.PostEventWidgetContent(t)
 					t.term.SetRedraw(false)
 				}
+			case ev := <-eventCh:
+				switch ev := ev.(type) {
+				case *termutil.EventTitle:
+					t.PostEvent(&EventTitle{
+						widget: t,
+						when:   ev.When(),
+						title:  ev.Title(),
+					})
+				}
 			}
 		}
 	}()
-	err := t.term.Run(cmd, uint16(h), uint16(w), attr)
+
+	err := t.term.Run(cmd, uint16(h), uint16(w), attr, eventCh)
 	if err != nil {
 		return err
 	}
 	t.Close()
 	return nil
+}
+
+type EventTitle struct {
+	when   time.Time
+	title  string
+	widget *Terminal
+}
+
+func (ev *EventTitle) When() time.Time {
+	return ev.when
+}
+
+func (ev *EventTitle) Widget() views.Widget {
+	return ev.widget
+}
+
+func (ev *EventTitle) Title() string {
+	return ev.title
 }
 
 func (t *Terminal) Close() {

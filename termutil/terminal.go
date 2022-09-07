@@ -8,8 +8,10 @@ import (
 	"os"
 	"os/exec"
 	"syscall"
+	"time"
 
 	"github.com/creack/pty"
+	"github.com/gdamore/tcell/v2"
 	"golang.org/x/term"
 )
 
@@ -30,6 +32,7 @@ type Terminal struct {
 	mouseExtMode      MouseExtMode
 	theme             *Theme
 	redraw            bool
+	eventCh           chan tcell.Event
 }
 
 // NewTerminal creates a new terminal instance
@@ -116,9 +119,10 @@ func (t *Terminal) SetSize(rows, cols uint16) error {
 }
 
 // Run starts the terminal/shell proxying process
-func (t *Terminal) Run(c *exec.Cmd, rows uint16, cols uint16, attr *syscall.SysProcAttr) error {
+func (t *Terminal) Run(c *exec.Cmd, rows uint16, cols uint16, attr *syscall.SysProcAttr, eventCh chan tcell.Event) error {
 	c.Env = append(os.Environ(), "TERM=xterm-256color")
 
+	t.eventCh = eventCh
 	// Start the command with a pty.
 	var err error
 	// t.pty, err = pty.Start(c)
@@ -230,6 +234,7 @@ func (t *Terminal) translateRune(b MeasuredRune) MeasuredRune {
 }
 
 func (t *Terminal) setTitle(title string) {
+	t.eventCh <- newEventTitle(title)
 	t.windowManipulator.SetTitle(title)
 }
 
@@ -264,4 +269,24 @@ func (t *Terminal) useMainBuffer() {
 
 func (t *Terminal) useAltBuffer() {
 	t.switchBuffer(AltBuffer)
+}
+
+type EventTitle struct {
+	when  time.Time
+	title string
+}
+
+func (ev *EventTitle) When() time.Time {
+	return ev.when
+}
+
+func (ev *EventTitle) Title() string {
+	return ev.title
+}
+
+func newEventTitle(title string) tcell.Event {
+	return &EventTitle{
+		when:  time.Now(),
+		title: title,
+	}
 }
