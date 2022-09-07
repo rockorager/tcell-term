@@ -30,6 +30,12 @@ func (line *Line) append(cells ...Cell) {
 	line.cells = append(line.cells, cells...)
 }
 
+func (line *Line) setDirty(d bool) {
+	for _, cell := range line.cells {
+		cell.SetDirty(d)
+	}
+}
+
 func (line *Line) shrink(width uint16) {
 	if line.Len() <= width {
 		return
@@ -40,6 +46,7 @@ func (line *Line) shrink(width uint16) {
 		if cell.r.Rune == 0 && remove > 0 {
 			remove--
 		} else {
+			cell.SetDirty(true)
 			cells = append(cells, cell)
 		}
 	}
@@ -54,6 +61,7 @@ func (line *Line) wrap(width uint16) []Line {
 	current.wrapped = line.wrapped
 
 	for _, cell := range line.cells {
+		cell.SetDirty(true)
 		if len(current.cells) == int(width) {
 			output = append(output, current)
 			current = newLine()

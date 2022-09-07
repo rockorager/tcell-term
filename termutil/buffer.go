@@ -130,6 +130,7 @@ func (buffer *Buffer) areaScrollDown(lines uint16) {
 		i--
 		if i >= top+uint64(lines) {
 			buffer.lines[i] = buffer.lines[i-uint64(lines)]
+			buffer.lines[i].setDirty(true)
 		} else {
 			buffer.lines[i] = newLine()
 		}
@@ -144,6 +145,7 @@ func (buffer *Buffer) areaScrollUp(lines uint16) {
 		from := i + uint64(lines)
 		if from < bottom {
 			buffer.lines[i] = buffer.lines[from]
+			buffer.lines[i].setDirty(true)
 		} else {
 			buffer.lines[i] = newLine()
 		}
@@ -372,6 +374,9 @@ func (buffer *Buffer) index() {
 		if uint64(len(buffer.lines)) > maxLines {
 			copy(buffer.lines, buffer.lines[uint64(len(buffer.lines))-maxLines:])
 			buffer.lines = buffer.lines[:maxLines]
+			for _, line := range buffer.lines {
+				line.setDirty(true)
+			}
 		}
 	}
 	buffer.cursorPosition.Line++
@@ -783,7 +788,7 @@ func (buffer *Buffer) defaultCell(applyEffects bool) Cell {
 		attr = attr.Underline(false)
 		attr = attr.Dim(false)
 	}
-	return Cell{attr: attr}
+	return Cell{attr: attr, dirty: true}
 }
 
 func (buffer *Buffer) IsNewLineMode() bool {
