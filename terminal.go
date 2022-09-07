@@ -28,21 +28,9 @@ type Terminal struct {
 	views.WidgetWatchers
 }
 
-func New(screen tcell.Screen, view views.View, opts ...Option) *Terminal {
-	var err error
-	if screen == nil {
-		screen, err = tcell.NewScreen()
-		if err != nil {
-			panic(err)
-		}
-	}
-	if view == nil {
-		view = views.NewViewPort(screen, 0, 0, -1, -1)
-	}
+func New(opts ...Option) *Terminal {
 	t := &Terminal{
-		term:   termutil.New(),
-		screen: screen,
-		view:   view,
+		term: termutil.New(),
 	}
 	t.term.SetWindowManipulator(&windowManipulator{})
 	for _, opt := range opts {
