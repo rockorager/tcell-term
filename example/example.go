@@ -1,3 +1,4 @@
+//go:build ignore
 // +build ignore
 
 package main
@@ -7,181 +8,113 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"math/rand"
 	"os"
 	"os/exec"
-	"time"
 
 	tcellterm "git.sr.ht/~ghost08/tcell-term"
 	"github.com/gdamore/tcell/v2"
+	"github.com/gdamore/tcell/v2/views"
 )
 
-var red = int32(rand.Int() % 256)
-var grn = int32(rand.Int() % 256)
-var blu = int32(rand.Int() % 256)
-var inc = int32(8) // rate of color change
-var redi = int32(inc)
-var grni = int32(inc)
-var blui = int32(inc)
-var term *tcellterm.Terminal
-
-func makebox(s tcell.Screen) {
-	s.Clear()
-	w, h := s.Size()
-
-	if w == 0 || h == 0 {
-		return
-	}
-
-	glyphs := []rune{'@', '#', '&', '*', '=', '%', 'Z', 'A'}
-
-	lh := h / 2
-	lw := w / 2
-	lx := w / 4
-	ly := h / 4
-	st := tcell.StyleDefault
-	gl := ' '
-
-	if s.Colors() == 0 {
-		st = st.Reverse(rand.Int()%2 == 0)
-		gl = glyphs[rand.Int()%len(glyphs)]
-	} else {
-
-		red += redi
-		if (red >= 256) || (red < 0) {
-			redi = -redi
-			red += redi
-		}
-		grn += grni
-		if (grn >= 256) || (grn < 0) {
-			grni = -grni
-			grn += grni
-		}
-		blu += blui
-		if (blu >= 256) || (blu < 0) {
-			blui = -blui
-			blu += blui
-
-		}
-		st = st.Background(tcell.NewRGBColor(red, grn, blu))
-	}
-	if term == nil {
-		for row := 0; row < lh; row++ {
-			for col := 0; col < lw; col++ {
-				s.SetCell(lx+col, ly+row, st, gl)
-			}
-		}
-	} else {
-		term.Draw(s, uint16(lx), uint16(ly))
-	}
-	s.Show()
+type model struct {
+	term      *tcellterm.Terminal
+	s         tcell.Screen
+	termView  views.View
+	title     *views.TextBar
+	titleView views.View
 }
 
-func flipcoin() bool {
-	if rand.Int()&1 == 0 {
-		return false
+func (m *model) HandleEvent(ev tcell.Event) bool {
+	switch ev := ev.(type) {
+	case *tcell.EventKey:
+		switch ev.Key() {
+		case tcell.KeyCtrlC:
+			m.s.Clear()
+			m.s.Fini()
+			return true
+		}
+		if m.term != nil {
+			return m.term.HandleEvent(ev)
+		}
+	case *tcell.EventResize:
+		if m.term != nil {
+			m.termView.Resize(0, 2, -1, -1)
+			m.term.Resize()
+		}
+		m.titleView.Resize(0, 0, -1, 2)
+		m.title.Resize()
+		m.s.Sync()
+		return true
+	case *views.EventWidgetContent:
+		m.term.Draw()
+		m.title.Draw()
+
+		vis, x, y, style := m.term.GetCursor()
+		if vis {
+			m.s.ShowCursor(x, y+2)
+			m.s.SetCursorStyle(style)
+		} else {
+			m.s.HideCursor()
+		}
+		m.s.Show()
+		return true
 	}
-	return true
+	return false
 }
 
 func main() {
+	var err error
 	f, _ := os.Create("meh.log")
 	defer f.Close()
 	logbuf := bytes.NewBuffer(nil)
 	log.SetOutput(io.MultiWriter(f, logbuf))
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
-	rand.Seed(time.Now().UnixNano())
-	tcell.SetEncodingFallback(tcell.EncodingFallbackASCII)
-	s, e := tcell.NewScreen()
-	if e != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", e)
+	m := &model{}
+	m.s, err = tcell.NewScreen()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(1)
 	}
-	if e = s.Init(); e != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", e)
+	if err = m.s.Init(); err != nil {
+		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(1)
 	}
 
-	s.SetStyle(tcell.StyleDefault.
-		Foreground(tcell.ColorWhite).
-		Background(tcell.ColorBlack))
-	s.Clear()
+	m.title = views.NewTextBar()
+	m.title.SetCenter(
+		"Welcome to tcell-term",
+		tcell.StyleDefault.Foreground(tcell.ColorBlue).
+			Bold(true).
+			Underline(true),
+	)
 
-	quit := make(chan struct{})
-	redraw := make(chan struct{})
+	m.titleView = views.NewViewPort(m.s, 0, 0, -1, 2)
+	m.title.Watch(m)
+	m.title.SetView(m.titleView)
+
+	m.termView = views.NewViewPort(m.s, 0, 2, -1, -1)
+	m.term = tcellterm.New()
+	m.term.Watch(m)
+	m.term.SetView(m.termView)
+
+	cmd := exec.Command(os.Getenv("SHELL"))
 	go func() {
-		for {
-			ev := s.PollEvent()
-			switch ev := ev.(type) {
-			case *tcell.EventKey:
-				switch ev.Key() {
-				case tcell.KeyEscape:
-					if term == nil {
-						close(quit)
-						return
-					}
-				case tcell.KeyEnter:
-					if term == nil {
-						term = tcellterm.New()
-						cmd := exec.Command("less", "/etc/hosts")
-						go func() {
-							w, h := s.Size()
-							lh := h / 2
-							lw := w / 2
-							if err := term.Run(cmd, redraw, uint16(lw), uint16(lh)); err != nil {
-								log.Println(err)
-							}
-							s.HideCursor()
-							term = nil
-						}()
-						continue
-					}
-				}
-				if term != nil {
-					term.Event(ev)
-				}
-			case *tcell.EventResize:
-				if term != nil {
-					w, h := s.Size()
-					lh := h / 2
-					lw := w / 2
-					term.Resize(lw, lh)
-				}
-				s.Sync()
-			}
+		if err := m.term.Run(cmd); err != nil {
+			log.Println(err)
 		}
+		m.s.Clear()
+		m.s.Fini()
+		os.Stdout.Write(logbuf.Bytes())
+		return
 	}()
-
-	cnt := 0
-loop:
 	for {
-		select {
-		case <-quit:
-			break loop
-		case <-time.After(time.Millisecond * 50):
-		case <-redraw:
+		// s.Show()
+		ev := m.s.PollEvent()
+		if ev == nil {
+			break
 		}
-		makebox(s)
-		cnt++
-		if cnt%(256/int(inc)) == 0 {
-			if flipcoin() {
-				redi = -redi
-			}
-			if flipcoin() {
-				grni = -grni
-			}
-			if flipcoin() {
-				blui = -blui
-			}
-		}
+		m.HandleEvent(ev)
 	}
-
-	s.Fini()
 	os.Stdout.Write(logbuf.Bytes())
-}
-
-func colorToString(c tcell.Color) string {
-	r, g, b := c.RGB()
-	return fmt.Sprintf("%02x%02x%02x", r, g, b)
 }
