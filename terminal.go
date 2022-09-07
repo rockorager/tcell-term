@@ -104,16 +104,16 @@ func (t *Terminal) HandleEvent(e tcell.Event) bool {
 }
 
 func (t *Terminal) Draw() {
-	t.view.Clear()
 	buf := t.term.GetActiveBuffer()
-	for viewY := int(buf.ViewHeight()) - 1; viewY >= 0; viewY-- {
-		for viewX := uint16(0); viewX < buf.ViewWidth(); viewX++ {
+	w, h := t.view.Size()
+	for viewY := 0; viewY < h; viewY++ {
+		for viewX := uint16(0); viewX < uint16(w); viewX++ {
 			cell := buf.GetCell(viewX, uint16(viewY))
 			if cell == nil {
-				// s.SetContent(int(viewX+X), viewY+int(Y), ' ', nil, tcell.StyleDefault.Background(tcell.ColorBlack))
-				continue
+				t.view.SetContent(int(viewX), viewY, ' ', nil, tcell.StyleDefault)
+			} else if cell.Dirty() {
+				t.view.SetContent(int(viewX), viewY, cell.Rune().Rune, nil, cell.Style())
 			}
-			t.view.SetContent(int(viewX), viewY, cell.Rune().Rune, nil, cell.Style())
 		}
 	}
 	if buf.IsCursorVisible() {
