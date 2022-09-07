@@ -5,7 +5,6 @@ import (
 )
 
 func (t *Terminal) handleOSC(readChan chan MeasuredRune) (renderRequired bool) {
-
 	params := []string{}
 	param := ""
 
