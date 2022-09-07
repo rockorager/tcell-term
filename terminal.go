@@ -22,6 +22,7 @@ type Terminal struct {
 	curVis   bool
 
 	view views.View
+	interval int
 
 	close bool
 
@@ -31,6 +32,7 @@ type Terminal struct {
 func New(opts ...Option) *Terminal {
 	t := &Terminal{
 		term: termutil.New(),
+		interval: 8,
 	}
 	t.term.SetWindowManipulator(&windowManipulator{})
 	for _, opt := range opts {
@@ -47,6 +49,20 @@ func WithWindowManipulator(wm termutil.WindowManipulator) Option {
 	}
 }
 
+// WithPollInterval sets the minimum time, in ms, between
+// views.EventWidgetContent events, which signal the screen has updates which
+// can be drawn.
+//
+// Default: 8 ms
+func WithPollInterval(interval int) Option {
+	return func(t *Terminal) {
+		if interval < 1 {
+			interval = 1
+		}
+		t.interval = interval
+	}
+}
+
 func (t *Terminal) Run(cmd *exec.Cmd) error {
 	return t.run(cmd, &syscall.SysProcAttr{})
 }
@@ -57,7 +73,7 @@ func (t *Terminal) RunWithAttrs(cmd *exec.Cmd, attr *syscall.SysProcAttr) error 
 
 func (t *Terminal) run(cmd *exec.Cmd, attr *syscall.SysProcAttr) error {
 	w, h := t.view.Size()
-	tmr := time.NewTicker(16 * time.Millisecond)
+	tmr := time.NewTicker(time.Duration(t.interval) * time.Millisecond)
 	go func() {
 		for {
 			select {
