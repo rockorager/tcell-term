@@ -1,7 +1,5 @@
 package termutil
 
-import "log"
-
 func (t *Terminal) handleANSI(readChan chan MeasuredRune) (renderRequired bool) {
 	// if the byte is an escape character, read the next byte to determine which one
 	r := <-readChan
@@ -44,7 +42,7 @@ func (t *Terminal) handleANSI(readChan chan MeasuredRune) (renderRequired bool) 
 	case '^':
 		return t.handlePrivacyMessage(readChan)
 	default:
-		log.Printf("UNKNOWN ESCAPE SEQUENCE: 0x%X", r.Rune)
+		// log.Printf("UNKNOWN ESCAPE SEQUENCE: 0x%X", r.Rune)
 		return false
 	}
 
