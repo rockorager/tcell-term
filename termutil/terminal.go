@@ -23,26 +23,23 @@ const (
 
 // Terminal communicates with the underlying terminal
 type Terminal struct {
-	windowManipulator WindowManipulator
-	pty               *os.File
-	processChan       chan MeasuredRune
-	buffers           []*Buffer
-	activeBuffer      *Buffer
-	mouseMode         MouseMode
-	mouseExtMode      MouseExtMode
-	theme             *Theme
-	redraw            bool
-	eventCh           chan tcell.Event
+	pty          *os.File
+	processChan  chan MeasuredRune
+	buffers      []*Buffer
+	activeBuffer *Buffer
+	mouseMode    MouseMode
+	mouseExtMode MouseExtMode
+	theme        *Theme
+	redraw       bool
+	eventCh      chan tcell.Event
+	title        string
 }
 
 // NewTerminal creates a new terminal instance
-func New(options ...Option) *Terminal {
+func New() *Terminal {
 	term := &Terminal{
 		processChan: make(chan MeasuredRune, 0xffff),
 		theme:       &Theme{},
-	}
-	for _, opt := range options {
-		opt(term)
 	}
 	fg := term.theme.DefaultForeground()
 	bg := term.theme.DefaultBackground()
@@ -53,10 +50,6 @@ func New(options ...Option) *Terminal {
 	}
 	term.activeBuffer = term.buffers[0]
 	return term
-}
-
-func (t *Terminal) SetWindowManipulator(m WindowManipulator) {
-	t.windowManipulator = m
 }
 
 func (t *Terminal) reset() {
@@ -81,7 +74,7 @@ func (t *Terminal) WriteToPty(data []byte) error {
 }
 
 func (t *Terminal) GetTitle() string {
-	return t.windowManipulator.GetTitle()
+	return t.title
 }
 
 func (t *Terminal) Theme() *Theme {
@@ -145,7 +138,7 @@ func (t *Terminal) Run(c *exec.Cmd, rows uint16, cols uint16, attr *syscall.SysP
 	if fd := int(os.Stdin.Fd()); term.IsTerminal(fd) {
 		oldState, err := term.MakeRaw(fd)
 		if err != nil {
-			t.windowManipulator.ReportError(err)
+			// TODO send an event?
 		}
 		defer func() { _ = term.Restore(fd, oldState) }() // Best effort.
 	}
@@ -234,8 +227,8 @@ func (t *Terminal) translateRune(b MeasuredRune) MeasuredRune {
 }
 
 func (t *Terminal) setTitle(title string) {
+	t.title = title
 	t.eventCh <- newEventTitle(title)
-	t.windowManipulator.SetTitle(title)
 }
 
 func (t *Terminal) switchBuffer(index uint8) {

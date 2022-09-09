@@ -70,7 +70,8 @@ func (t *Terminal) handleCSI(readChan chan MeasuredRune) (renderRequired bool) {
 	case 'r':
 		return t.csiSetMarginsHandler(params)
 	case 't':
-		return t.csiWindowManipulation(params)
+		// Window manipulation, unsupported
+		return false
 	case 'q':
 		if string(intermediate) == " " {
 			return t.csiCursorSelection(params)
@@ -129,178 +130,6 @@ func (t *Terminal) handleCSI(readChan chan MeasuredRune) (renderRequired bool) {
 	_ = raw
 	// log.Printf("UNKNOWN CSI P(%s) I(%s) %c", strings.Join(params, ";"), string(intermediate), final)
 	return false
-}
-
-type WindowState uint8
-
-const (
-	StateUnknown WindowState = iota
-	StateMinimised
-	StateNormal
-	StateMaximised
-)
-
-type WindowManipulator interface {
-	State() WindowState
-	Minimise()
-	Maximise()
-	Restore()
-	SetTitle(title string)
-	Position() (int, int)
-	SizeInPixels() (int, int)
-	CellSizeInPixels() (int, int)
-	SizeInChars() (int, int)
-	ResizeInPixels(int, int)
-	ResizeInChars(int, int)
-	ScreenSizeInPixels() (int, int)
-	ScreenSizeInChars() (int, int)
-	Move(x, y int)
-	IsFullscreen() bool
-	SetFullscreen(enabled bool)
-	GetTitle() string
-	SaveTitleToStack()
-	RestoreTitleFromStack()
-	ReportError(err error)
-}
-
-func (t *Terminal) csiWindowManipulation(params []string) (renderRequired bool) {
-	if t.windowManipulator == nil {
-		return false
-	}
-
-	for i := 0; i < len(params); i++ {
-		switch params[i] {
-		case "1":
-			t.windowManipulator.Restore()
-		case "2":
-			t.windowManipulator.Minimise()
-		case "3": // move window
-			if i+2 >= len(params) {
-				return false
-			}
-			x, _ := strconv.Atoi(params[i+1])
-			y, _ := strconv.Atoi(params[i+2])
-			i += 2
-			t.windowManipulator.Move(x, y)
-		case "4": // resize h,w
-			w, h := t.windowManipulator.SizeInPixels()
-			if i+1 < len(params) {
-				h, _ = strconv.Atoi(params[i+1])
-				i++
-			}
-			if i+2 < len(params) {
-				w, _ = strconv.Atoi(params[i+2])
-				i++
-			}
-			sw, sh := t.windowManipulator.ScreenSizeInPixels()
-			if w == 0 {
-				w = sw
-			}
-			if h == 0 {
-				h = sh
-			}
-			t.windowManipulator.ResizeInPixels(w, h)
-		case "8":
-			// resize in rows, cols
-			w, h := t.windowManipulator.SizeInChars()
-			if i+1 < len(params) {
-				h, _ = strconv.Atoi(params[i+1])
-				i++
-			}
-			if i+2 < len(params) {
-				w, _ = strconv.Atoi(params[i+2])
-				i++
-			}
-			sw, sh := t.windowManipulator.ScreenSizeInChars()
-			if w == 0 {
-				w = sw
-			}
-			if h == 0 {
-				h = sh
-			}
-			t.windowManipulator.ResizeInChars(w, h)
-		case "9":
-			if i+1 >= len(params) {
-				return false
-			}
-			switch params[i+1] {
-			case "0":
-				t.windowManipulator.Restore()
-			case "1":
-				t.windowManipulator.Maximise()
-			case "2":
-				w, _ := t.windowManipulator.SizeInPixels()
-				_, sh := t.windowManipulator.ScreenSizeInPixels()
-				t.windowManipulator.ResizeInPixels(w, sh)
-			case "3":
-				_, h := t.windowManipulator.SizeInPixels()
-				sw, _ := t.windowManipulator.ScreenSizeInPixels()
-				t.windowManipulator.ResizeInPixels(sw, h)
-			}
-			i++
-		case "10":
-			if i+1 >= len(params) {
-				return false
-			}
-			switch params[i+1] {
-			case "0":
-				t.windowManipulator.SetFullscreen(false)
-			case "1":
-				t.windowManipulator.SetFullscreen(true)
-			case "2":
-				// toggle
-				t.windowManipulator.SetFullscreen(!t.windowManipulator.IsFullscreen())
-			}
-			i++
-
-		case "11":
-			if t.windowManipulator.State() != StateMinimised {
-				t.WriteToPty([]byte("\x1b[1t"))
-			} else {
-				t.WriteToPty([]byte("\x1b[2t"))
-			}
-		case "13":
-			if i < len(params)-1 {
-				i++
-			}
-			x, y := t.windowManipulator.Position()
-			t.WriteToPty([]byte(fmt.Sprintf("\x1b[3;%d;%dt", x, y)))
-		case "14":
-			if i < len(params)-1 {
-				i++
-			}
-			w, h := t.windowManipulator.SizeInPixels()
-			t.WriteToPty([]byte(fmt.Sprintf("\x1b[4;%d;%dt", h, w)))
-		case "15":
-			w, h := t.windowManipulator.ScreenSizeInPixels()
-			t.WriteToPty([]byte(fmt.Sprintf("\x1b[5;%d;%dt", h, w)))
-		case "16":
-			w, h := t.windowManipulator.CellSizeInPixels()
-			t.WriteToPty([]byte(fmt.Sprintf("\x1b[6;%d;%dt", h, w)))
-		case "18":
-			w, h := t.windowManipulator.SizeInChars()
-			t.WriteToPty([]byte(fmt.Sprintf("\x1b[8;%d;%dt", h, w)))
-		case "19":
-			w, h := t.windowManipulator.ScreenSizeInChars()
-			t.WriteToPty([]byte(fmt.Sprintf("\x1b[9;%d;%dt", h, w)))
-		case "20":
-			t.WriteToPty([]byte(fmt.Sprintf("\x1b]1%s\x1b\\", t.windowManipulator.GetTitle())))
-		case "21":
-			t.WriteToPty([]byte(fmt.Sprintf("\x1b]2%s\x1b\\", t.windowManipulator.GetTitle())))
-		case "22":
-			if i < len(params)-1 {
-				i++
-			}
-			t.windowManipulator.SaveTitleToStack()
-		case "23":
-			if i < len(params)-1 {
-				i++
-			}
-			t.windowManipulator.RestoreTitleFromStack()
-		}
-	}
-
-	return true
 }
 
 // CSI c
@@ -696,16 +525,7 @@ func (t *Terminal) csiSetMode(modes string, enabled bool) bool {
 		case "?1":
 			t.activeBuffer.modes.ApplicationCursorKeys = enabled
 		case "?3":
-			if t.windowManipulator != nil {
-				if enabled {
-					// DECCOLM - COLumn mode, 132 characters per line
-					t.windowManipulator.ResizeInChars(132, int(t.activeBuffer.viewHeight))
-				} else {
-					// DECCOLM - 80 characters per line (erases screen)
-					t.windowManipulator.ResizeInChars(80, int(t.activeBuffer.viewHeight))
-				}
-				t.activeBuffer.clear()
-			}
+			// TODO decide if supporting 132 column mode
 		case "?5": // DECSCNM
 			t.activeBuffer.modes.ScreenMode = enabled
 		case "?6":

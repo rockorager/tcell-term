@@ -34,7 +34,6 @@ func New(opts ...Option) *Terminal {
 		term:     termutil.New(),
 		interval: 8,
 	}
-	t.term.SetWindowManipulator(&windowManipulator{})
 	for _, opt := range opts {
 		opt(t)
 	}
@@ -42,12 +41,6 @@ func New(opts ...Option) *Terminal {
 }
 
 type Option func(*Terminal)
-
-func WithWindowManipulator(wm termutil.WindowManipulator) Option {
-	return func(t *Terminal) {
-		t.term.SetWindowManipulator(wm)
-	}
-}
 
 // WithPollInterval sets the minimum time, in ms, between
 // views.EventWidgetContent events, which signal the screen has updates which
@@ -217,47 +210,6 @@ func (t *Terminal) Resize() {
 	w, h := t.view.Size()
 	t.term.SetSize(uint16(h), uint16(w))
 }
-
-type windowManipulator struct{}
-
-func (w *windowManipulator) State() termutil.WindowState {
-	return termutil.StateNormal
-}
-func (w *windowManipulator) Minimise()             {}
-func (w *windowManipulator) Maximise()             {}
-func (w *windowManipulator) Restore()              {}
-func (w *windowManipulator) SetTitle(title string) {}
-func (w *windowManipulator) Position() (int, int)  { return 0, 0 }
-func (w *windowManipulator) SizeInPixels() (int, int) {
-	sz, _ := GetWinSize()
-	return int(sz.XPixel), int(sz.YPixel)
-}
-
-func (w *windowManipulator) CellSizeInPixels() (int, int) {
-	sz, _ := GetWinSize()
-	return int(sz.Cols / sz.XPixel), int(sz.Rows / sz.YPixel)
-}
-
-func (w *windowManipulator) SizeInChars() (int, int) {
-	sz, _ := GetWinSize()
-	return int(sz.Cols), int(sz.Rows)
-}
-func (w *windowManipulator) ResizeInPixels(int, int) {}
-func (w *windowManipulator) ResizeInChars(int, int)  {}
-func (w *windowManipulator) ScreenSizeInPixels() (int, int) {
-	return w.SizeInPixels()
-}
-
-func (w *windowManipulator) ScreenSizeInChars() (int, int) {
-	return w.SizeInChars()
-}
-func (w *windowManipulator) Move(x, y int)              {}
-func (w *windowManipulator) IsFullscreen() bool         { return false }
-func (w *windowManipulator) SetFullscreen(enabled bool) {}
-func (w *windowManipulator) GetTitle() string           { return "term" }
-func (w *windowManipulator) SaveTitleToStack()          {}
-func (w *windowManipulator) RestoreTitleFromStack()     {}
-func (w *windowManipulator) ReportError(err error)      {}
 
 func getCtrlCombinationKeyCode(ke *tcell.EventKey) string {
 	if keycode, ok := LINUX_CTRL_KEY_MAP[ke.Key()]; ok {
