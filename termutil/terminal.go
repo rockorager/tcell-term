@@ -18,7 +18,6 @@ import (
 const (
 	MainBuffer     uint8 = 0
 	AltBuffer      uint8 = 1
-	InternalBuffer uint8 = 2
 )
 
 // Terminal communicates with the underlying terminal
@@ -44,7 +43,6 @@ func New() *Terminal {
 	fg := term.theme.DefaultForeground()
 	bg := term.theme.DefaultBackground()
 	term.buffers = []*Buffer{
-		NewBuffer(1, 1, 0xffff, fg, bg),
 		NewBuffer(1, 1, 0xffff, fg, bg),
 		NewBuffer(1, 1, 0xffff, fg, bg),
 	}
