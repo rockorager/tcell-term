@@ -194,14 +194,6 @@ func (t *Terminal) GetCursor() (bool, int, int, tcell.CursorStyle) {
 	return t.curVis, t.curX, t.curY, t.curStyle
 }
 
-func convertColor(c color.Color, defaultColor tcell.Color) tcell.Color {
-	if c == nil {
-		return defaultColor
-	}
-	r, g, b, _ := c.RGBA()
-	return tcell.NewRGBColor(int32(r), int32(g), int32(b))
-}
-
 // Resize resizes the terminal to the dimensions of the terminals view
 func (t *Terminal) Resize() {
 	if t.view == nil {
