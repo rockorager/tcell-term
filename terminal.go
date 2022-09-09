@@ -1,53 +1,81 @@
 package tcellterm
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
-	"image/color"
+	"io"
 	"os"
 	"os/exec"
 	"syscall"
 	"time"
 
-	"git.sr.ht/~rockorager/tcell-term/termutil"
+	"github.com/creack/pty"
 	"github.com/gdamore/tcell/v2"
 	"github.com/gdamore/tcell/v2/views"
+	"golang.org/x/term"
+)
+
+const (
+	mainBuffer uint8 = 0
+	altBuffer  uint8 = 1
 )
 
 type Terminal struct {
-	term *termutil.Terminal
-
 	curX     int
 	curY     int
 	curStyle tcell.CursorStyle
 	curVis   bool
-
 	view     views.View
 	interval int
-
-	close bool
-
+	close    bool
 	views.WidgetWatchers
+	pty          *os.File
+	processChan  chan measuredRune
+	buffers      []*buffer
+	activeBuffer *buffer
+	mouseMode    mouseMode
+	mouseExtMode mouseExtMode
+	redraw       bool
+	title        string
 }
 
-func New(opts ...Option) *Terminal {
-	t := &Terminal{
-		term:     termutil.New(),
-		interval: 8,
+func New(opts ...option) *Terminal {
+	term := &Terminal{
+		processChan: make(chan measuredRune, 0xffff),
+		interval:    8,
 	}
+	fg := defaultForeground()
+	bg := defaultBackground()
+	term.buffers = []*buffer{
+		newBuffer(1, 1, 0xffff, fg, bg),
+		newBuffer(1, 1, 0xffff, fg, bg),
+	}
+	term.activeBuffer = term.buffers[0]
 	for _, opt := range opts {
-		opt(t)
+		opt(term)
 	}
-	return t
+	return term
 }
 
-type Option func(*Terminal)
+func (t *Terminal) reset() {
+	fg := defaultForeground()
+	bg := defaultBackground()
+	t.buffers = []*buffer{
+		newBuffer(1, 1, 0xffff, fg, bg),
+		newBuffer(1, 1, 0xffff, fg, bg),
+	}
+	t.useMainBuffer()
+}
+
+type option func(*Terminal)
 
 // WithPollInterval sets the minimum time, in ms, between
 // views.EventWidgetContent events, which signal the screen has updates which
 // can be drawn.
 //
 // Default: 8 ms
-func WithPollInterval(interval int) Option {
+func WithPollInterval(interval int) option {
 	return func(t *Terminal) {
 		if interval < 1 {
 			interval = 1
@@ -56,10 +84,12 @@ func WithPollInterval(interval int) Option {
 	}
 }
 
+// Run starts the terminal with the specified command
 func (t *Terminal) Run(cmd *exec.Cmd) error {
 	return t.run(cmd, &syscall.SysProcAttr{})
 }
 
+// Run starts the terminal with the specified command and custom attributes
 func (t *Terminal) RunWithAttrs(cmd *exec.Cmd, attr *syscall.SysProcAttr) error {
 	return t.run(cmd, attr)
 }
@@ -67,7 +97,6 @@ func (t *Terminal) RunWithAttrs(cmd *exec.Cmd, attr *syscall.SysProcAttr) error 
 func (t *Terminal) run(cmd *exec.Cmd, attr *syscall.SysProcAttr) error {
 	w, h := t.view.Size()
 	tmr := time.NewTicker(time.Duration(t.interval) * time.Millisecond)
-	eventCh := make(chan tcell.Event)
 	go func() {
 		for {
 			select {
@@ -75,52 +104,54 @@ func (t *Terminal) run(cmd *exec.Cmd, attr *syscall.SysProcAttr) error {
 				if t.close {
 					return
 				}
-				if t.term.ShouldRedraw() {
+				if t.ShouldRedraw() {
 					t.PostEventWidgetContent(t)
-					t.term.SetRedraw(false)
-				}
-			case ev := <-eventCh:
-				switch ev := ev.(type) {
-				case *termutil.EventTitle:
-					t.PostEvent(&EventTitle{
-						widget: t,
-						when:   ev.When(),
-						title:  ev.Title(),
-					})
+					t.SetRedraw(false)
 				}
 			}
 		}
 	}()
 
-	err := t.term.Run(cmd, uint16(h), uint16(w), attr, eventCh)
+	cmd.Env = append(os.Environ(), "TERM=xterm-256color")
+
+	// Start the command with a pty.
+	var err error
+	// t.pty, err = pty.Start(c)
+	winsize := pty.Winsize{
+		Cols: uint16(w),
+		Rows: uint16(h),
+	}
+	t.pty, err = pty.StartWithAttrs(cmd, &winsize, &syscall.SysProcAttr{Setsid: true, Setctty: true, Ctty: 1})
 	if err != nil {
 		return err
 	}
+	// Make sure to close the pty at the end.
+	defer func() { _ = t.pty.Close() }() // Best effort.
+
+	if err := t.setSize(uint16(h), uint16(w)); err != nil {
+		return err
+	}
+
+	// Set stdin in raw mode.
+	if fd := int(os.Stdin.Fd()); term.IsTerminal(fd) {
+		oldState, err := term.MakeRaw(fd)
+		if err != nil {
+			// TODO send an event?
+		}
+		defer func() { _ = term.Restore(fd, oldState) }() // Best effort.
+	}
+
+	go t.process()
+
+	_, _ = io.Copy(t, t.pty)
 	t.Close()
 	return nil
 }
 
-type EventTitle struct {
-	when   time.Time
-	title  string
-	widget *Terminal
-}
-
-func (ev *EventTitle) When() time.Time {
-	return ev.when
-}
-
-func (ev *EventTitle) Widget() views.Widget {
-	return ev.widget
-}
-
-func (ev *EventTitle) Title() string {
-	return ev.title
-}
-
+// Close ends the process and cleans up the terminal
 func (t *Terminal) Close() {
 	t.close = true
-	t.term.Pty().Close()
+	t.pty.Close()
 }
 
 // SetView sets the view for the terminal to draw to. This must be set before
@@ -129,6 +160,7 @@ func (t *Terminal) SetView(view views.View) {
 	t.view = view
 }
 
+// Size reports the current view size in rows, cols
 func (t *Terminal) Size() (int, int) {
 	if t.view == nil {
 		return 0, 0
@@ -136,6 +168,7 @@ func (t *Terminal) Size() (int, int) {
 	return t.view.Size()
 }
 
+// HandleEvent handles tcell Events from the parent application
 func (t *Terminal) HandleEvent(e tcell.Event) bool {
 	switch e := e.(type) {
 	case *tcell.EventKey:
@@ -148,37 +181,40 @@ func (t *Terminal) HandleEvent(e tcell.Event) bool {
 		default:
 			keycode = getKeyCode(e)
 		}
-		t.term.WriteToPty([]byte(keycode))
+		t.writeToPty([]byte(keycode))
 		return true
+	case *tcell.EventResize:
+		t.Resize()
 	}
 	return false
 }
 
+// Draw draws the current cell buffer to the view.
 func (t *Terminal) Draw() {
 	if t.view == nil {
 		return
 	}
-	buf := t.term.GetActiveBuffer()
+	buf := t.getActiveBuffer()
 	w, h := t.view.Size()
 	for viewY := 0; viewY < h; viewY++ {
 		for viewX := uint16(0); viewX < uint16(w); viewX++ {
-			cell := buf.GetCell(viewX, uint16(viewY))
+			cell := buf.getCell(viewX, uint16(viewY))
 			if cell == nil {
 				t.view.SetContent(int(viewX), viewY, ' ', nil, tcell.StyleDefault)
-			} else if cell.Dirty() {
-				t.view.SetContent(int(viewX), viewY, cell.Rune().Rune, nil, cell.Style())
+			} else if cell.isDirty() {
+				t.view.SetContent(int(viewX), viewY, cell.rune().rune, nil, cell.style())
 			}
 		}
 	}
-	if buf.IsCursorVisible() {
+	if buf.isCursorVisible() {
 		t.curVis = true
-		t.curX = int(buf.CursorColumn())
-		t.curY = int(buf.CursorLine())
-		t.curStyle = tcell.CursorStyle(t.term.GetActiveBuffer().GetCursorShape())
+		t.curX = int(buf.cursorColumn())
+		t.curY = int(buf.cursorLine())
+		t.curStyle = tcell.CursorStyle(t.getActiveBuffer().getCursorShape())
 	} else {
 		t.curVis = false
 	}
-	for _, s := range buf.GetVisibleSixels() {
+	for _, s := range buf.getVisibleSixels() {
 		fmt.Printf("\033[%d;%dH", s.Sixel.Y, s.Sixel.X)
 		// DECSIXEL Introducer(\033P0;0;8q) + DECGRA ("1;1): Set Raster Attributes
 		os.Stdout.Write([]byte{0x1b, 0x50, 0x30, 0x3b, 0x30, 0x3b, 0x38, 0x71, 0x22, 0x31, 0x3b, 0x31})
@@ -200,101 +236,154 @@ func (t *Terminal) Resize() {
 		return
 	}
 	w, h := t.view.Size()
-	t.term.SetSize(uint16(h), uint16(w))
+	t.setSize(uint16(h), uint16(w))
 }
 
-func getCtrlCombinationKeyCode(ke *tcell.EventKey) string {
-	if keycode, ok := LINUX_CTRL_KEY_MAP[ke.Key()]; ok {
-		return keycode
-	}
-	if keycode, ok := LINUX_CTRL_RUNE_MAP[ke.Rune()]; ok {
-		return keycode
-	}
-	if ke.Key() == tcell.KeyRune {
-		r := ke.Rune()
-		if r >= 97 && r <= 122 {
-			r = r - 'a' + 1
-			return string(r)
+func (t *Terminal) getActiveBuffer() *buffer {
+	return t.activeBuffer
+}
+
+func (t *Terminal) processRunes(runes ...measuredRune) (renderRequired bool) {
+	for _, r := range runes {
+		switch r.rune {
+		case 0x05: // enq
+			continue
+		case 0x07: // bell
+			// DING DING DING
+			continue
+		case 0x8: // backspace
+			t.getActiveBuffer().backspace()
+			renderRequired = true
+		case 0x9: // tab
+			t.getActiveBuffer().tab()
+			renderRequired = true
+		case 0xa, 0xc: // newLine/form feed
+			t.getActiveBuffer().newLine()
+			renderRequired = true
+		case 0xb: // vertical tab
+			t.getActiveBuffer().verticalTab()
+			renderRequired = true
+		case 0xd: // carriageReturn
+			t.getActiveBuffer().carriageReturn()
+			renderRequired = true
+		case 0xe: // shiftOut
+			t.getActiveBuffer().currentCharset = 1
+		case 0xf: // shiftIn
+			t.getActiveBuffer().currentCharset = 0
+		default:
+			if r.rune < 0x20 {
+				// handle any other control chars here?
+				continue
+			}
+
+			t.getActiveBuffer().write(t.translateRune(r))
+			renderRequired = true
 		}
 	}
-	return getKeyCode(ke)
+
+	return renderRequired
 }
 
-func getAltCombinationKeyCode(ke *tcell.EventKey) string {
-	if keycode, ok := LINUX_ALT_KEY_MAP[ke.Key()]; ok {
-		return keycode
+func (t *Terminal) translateRune(b measuredRune) measuredRune {
+	table := t.getActiveBuffer().charsets[t.getActiveBuffer().currentCharset]
+	if table == nil {
+		return b
 	}
-	code := getKeyCode(ke)
-	return "\x1b" + code
+	chr, ok := (*table)[b.rune]
+	if ok {
+		return measuredRune{rune: chr, width: 1}
+	}
+	return b
 }
 
-func getKeyCode(ke *tcell.EventKey) string {
-	if keycode, ok := LINUX_KEY_MAP[ke.Key()]; ok {
-		return keycode
-	}
-	return string(ke.Rune())
+func (t *Terminal) useAltBuffer() {
+	t.switchBuffer(altBuffer)
 }
 
-var (
-	LINUX_KEY_MAP = map[tcell.Key]string{
-		tcell.KeyEnter:      "\r",
-		tcell.KeyBackspace:  "\x7f",
-		tcell.KeyBackspace2: "\x7f",
-		tcell.KeyTab:        "\t",
-		tcell.KeyEscape:     "\x1b",
-		tcell.KeyDown:       "\x1b[B",
-		tcell.KeyUp:         "\x1b[A",
-		tcell.KeyRight:      "\x1b[C",
-		tcell.KeyLeft:       "\x1b[D",
-		tcell.KeyHome:       "\x1b[1~",
-		tcell.KeyEnd:        "\x1b[4~",
-		tcell.KeyPgUp:       "\x1b[5~",
-		tcell.KeyPgDn:       "\x1b[6~",
-		tcell.KeyDelete:     "\x1b[3~",
-		tcell.KeyInsert:     "\x1b[2~",
-		tcell.KeyF1:         "\x1bOP",
-		tcell.KeyF2:         "\x1bOQ",
-		tcell.KeyF3:         "\x1bOR",
-		tcell.KeyF4:         "\x1bOS",
-		tcell.KeyF5:         "\x1b[15~",
-		tcell.KeyF6:         "\x1b[17~",
-		tcell.KeyF7:         "\x1b[18~",
-		tcell.KeyF8:         "\x1b[19~",
-		tcell.KeyF9:         "\x1b[20~",
-		tcell.KeyF10:        "\x1b[21~",
-		tcell.KeyF12:        "\x1b[24~",
-		/*
-			"bracketed_paste_mode_start": "\x1b[200~",
-			"bracketed_paste_mode_end":   "\x1b[201~",
-		*/
+func (t *Terminal) switchBuffer(index uint8) {
+	var carrySize bool
+	var w, h uint16
+	if t.activeBuffer != nil {
+		w, h = t.activeBuffer.viewWidth, t.activeBuffer.viewHeight
+		carrySize = true
+	}
+	t.activeBuffer = t.buffers[index]
+	if carrySize {
+		t.activeBuffer.resizeView(w, h)
+	}
+}
+
+func (t *Terminal) useMainBuffer() {
+	t.switchBuffer(mainBuffer)
+}
+
+func (t *Terminal) setTitle(title string) {
+	t.title = title
+	t.PostEvent(&EventTitle{
+		title:  title,
+		when:   time.Now(),
+		widget: t,
+	})
+}
+
+// ShouldRedraw returns whether any cell in the cell buffer is dirty
+func (t *Terminal) ShouldRedraw() bool {
+	return t.redraw
+}
+
+// SetRedraw sets the dirty state of the cell buffer. The host application
+// should set this to false after a draw is performed
+func (t *Terminal) SetRedraw(b bool) {
+	t.redraw = b
+}
+
+func (t *Terminal) setSize(rows, cols uint16) error {
+	if t.pty == nil {
+		return fmt.Errorf("terminal is not running")
 	}
 
-	LINUX_CTRL_KEY_MAP = map[tcell.Key]string{
-		tcell.KeyUp:    "\x1b[1;5A",
-		tcell.KeyDown:  "\x1b[1;5B",
-		tcell.KeyRight: "\x1b[1;5C",
-		tcell.KeyLeft:  "\x1b[1;5D",
+	t.activeBuffer.resizeView(cols, rows)
+
+	if err := pty.Setsize(t.pty, &pty.Winsize{
+		Rows: rows,
+		Cols: cols,
+	}); err != nil {
+		return err
 	}
 
-	LINUX_CTRL_RUNE_MAP = map[rune]string{
-		'@':  "\x00",
-		'`':  "\x00",
-		'[':  "\x1b",
-		'{':  "\x1b",
-		'\\': "\x1c",
-		'|':  "\x1c",
-		']':  "\x1d",
-		'}':  "\x1d",
-		'^':  "\x1e",
-		'~':  "\x1e",
-		'_':  "\x1f",
-		'?':  "\x7f",
-	}
+	return nil
+}
 
-	LINUX_ALT_KEY_MAP = map[tcell.Key]string{
-		tcell.KeyUp:    "\x1b[1;3A",
-		tcell.KeyDown:  "\x1b[1;3B",
-		tcell.KeyRight: "\x1b[1;3C",
-		tcell.KeyLeft:  "\x1b[1;3D",
+func (t *Terminal) process() {
+	for {
+		mr, ok := <-t.processChan
+		if !ok {
+			return
+		}
+		if mr.rune == 0x1b { // ANSI escape char, which means this is a sequence
+			if t.handleANSI(t.processChan) {
+				t.SetRedraw(true)
+			}
+		} else if t.processRunes(mr) { // otherwise it's just an individual rune we need to process
+			t.SetRedraw(true)
+		}
 	}
-)
+}
+
+// Write takes data from StdOut of the child shell and processes it
+func (t *Terminal) Write(data []byte) (n int, err error) {
+	reader := bufio.NewReader(bytes.NewBuffer(data))
+	for {
+		r, size, err := reader.ReadRune()
+		if err == io.EOF {
+			break
+		}
+		t.processChan <- measuredRune{rune: r, width: size}
+	}
+	return len(data), nil
+}
+
+func (t *Terminal) writeToPty(data []byte) error {
+	_, err := t.pty.Write(data)
+	return err
+}

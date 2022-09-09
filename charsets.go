@@ -1,4 +1,4 @@
-package termutil
+package tcellterm
 
 var charSets = map[rune]*map[rune]rune{
 	'0': &decSpecGraphics,
@@ -41,18 +41,18 @@ var decSpecGraphics = map[rune]rune{
 	0x7e: 0x00B7, // MIDDLE DOT
 }
 
-func (t *Terminal) handleSCS0(pty chan MeasuredRune) bool {
+func (t *Terminal) handleSCS0(pty chan measuredRune) bool {
 	return t.scsHandler(pty, 0)
 }
 
-func (t *Terminal) handleSCS1(pty chan MeasuredRune) bool {
+func (t *Terminal) handleSCS1(pty chan measuredRune) bool {
 	return t.scsHandler(pty, 1)
 }
 
-func (t *Terminal) scsHandler(pty chan MeasuredRune, which int) bool {
+func (t *Terminal) scsHandler(pty chan measuredRune, which int) bool {
 	b := <-pty
 
-	cs, ok := charSets[b.Rune]
+	cs, ok := charSets[b.rune]
 	if ok {
 		t.activeBuffer.charsets[which] = cs
 		return false

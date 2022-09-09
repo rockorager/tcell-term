@@ -1,30 +1,30 @@
-package termutil
+package tcellterm
 
-type Sixel struct {
+type sixel struct {
 	X    uint16
 	Y    uint64 // raw line
 	Data []byte
 }
 
-type VisibleSixel struct {
+type visibleSixel struct {
 	ViewLineOffset int
-	Sixel          Sixel
+	Sixel          sixel
 }
 
-func (b *Buffer) addSixel(data []byte) {
-	b.sixels = append(b.sixels, Sixel{
-		X:    b.CursorColumn(),
+func (b *buffer) addSixel(data []byte) {
+	b.sixels = append(b.sixels, sixel{
+		X:    b.cursorColumn(),
 		Y:    b.cursorPosition.Line,
 		Data: data,
 	})
 }
 
-func (b *Buffer) GetVisibleSixels() []VisibleSixel {
+func (b *buffer) getVisibleSixels() []visibleSixel {
 
 	firstLine := b.convertViewLineToRawLine(0)
 	lastLine := b.convertViewLineToRawLine(b.viewHeight - 1)
 
-	var visible []VisibleSixel
+	var visible []visibleSixel
 
 	for _, sixelImage := range b.sixels {
 		if sixelImage.Y < firstLine {
@@ -34,7 +34,7 @@ func (b *Buffer) GetVisibleSixels() []VisibleSixel {
 			continue
 		}
 
-		visible = append(visible, VisibleSixel{
+		visible = append(visible, visibleSixel{
 			ViewLineOffset: int(sixelImage.Y) - int(firstLine),
 			Sixel:          sixelImage,
 		})
@@ -43,7 +43,7 @@ func (b *Buffer) GetVisibleSixels() []VisibleSixel {
 	return visible
 }
 
-func (t *Terminal) handleSixel(readChan chan MeasuredRune) (renderRequired bool) {
+func (t *Terminal) handleSixel(readChan chan measuredRune) (renderRequired bool) {
 
 	var data []rune
 
@@ -52,7 +52,7 @@ func (t *Terminal) handleSixel(readChan chan MeasuredRune) (renderRequired bool)
 	for {
 		r := <-readChan
 
-		switch r.Rune {
+		switch r.rune {
 		case 0x1b:
 			inEscape = true
 			continue
@@ -65,6 +65,6 @@ func (t *Terminal) handleSixel(readChan chan MeasuredRune) (renderRequired bool)
 
 		inEscape = false
 
-		data = append(data, r.Rune)
+		data = append(data, r.rune)
 	}
 }

@@ -1,10 +1,10 @@
-package termutil
+package tcellterm
 
 import (
 	"fmt"
 )
 
-func (t *Terminal) handleOSC(readChan chan MeasuredRune) (renderRequired bool) {
+func (t *Terminal) handleOSC(readChan chan measuredRune) (renderRequired bool) {
 	params := []string{}
 	param := ""
 
@@ -12,16 +12,16 @@ READ:
 	for {
 		select {
 		case b := <-readChan:
-			if t.isOSCTerminator(b.Rune) {
+			if t.isOSCTerminator(b.rune) {
 				params = append(params, param)
 				break READ
 			}
-			if b.Rune == ';' {
+			if b.rune == ';' {
 				params = append(params, param)
 				param = ""
 				continue
 			}
-			param = fmt.Sprintf("%s%c", param, b.Rune)
+			param = fmt.Sprintf("%s%c", param, b.rune)
 		default:
 			return false
 		}
@@ -45,13 +45,13 @@ READ:
 	case "10": // get/set foreground colour
 		if len(pS) > 1 {
 			if pS[1] == "?" {
-				t.WriteToPty([]byte("\x1b]10;15"))
+				t.writeToPty([]byte("\x1b]10;15"))
 			}
 		}
 	case "11": // get/set background colour
 		if len(pS) > 1 {
 			if pS[1] == "?" {
-				t.WriteToPty([]byte("\x1b]10;0"))
+				t.writeToPty([]byte("\x1b]10;0"))
 			}
 		}
 	}

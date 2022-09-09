@@ -1,10 +1,10 @@
-package termutil
+package tcellterm
 
-func (t *Terminal) handleANSI(readChan chan MeasuredRune) (renderRequired bool) {
+func (t *Terminal) handleANSI(readChan chan measuredRune) (renderRequired bool) {
 	// if the byte is an escape character, read the next byte to determine which one
 	r := <-readChan
 
-	switch r.Rune {
+	switch r.rune {
 	case '[':
 		return t.handleCSI(readChan)
 	case ']':
@@ -22,21 +22,21 @@ func (t *Terminal) handleANSI(readChan chan MeasuredRune) (renderRequired bool) 
 	case '=':
 		return swallowHandler(0)(readChan) // alt char selection
 	case '7':
-		t.GetActiveBuffer().saveCursor()
+		t.getActiveBuffer().saveCursor()
 	case '8':
-		t.GetActiveBuffer().restoreCursor()
+		t.getActiveBuffer().restoreCursor()
 	case 'D':
-		t.GetActiveBuffer().index()
+		t.getActiveBuffer().index()
 	case 'E':
-		t.GetActiveBuffer().newLineEx(true)
+		t.getActiveBuffer().newLineEx(true)
 	case 'H':
-		t.GetActiveBuffer().tabSetAtCursor()
+		t.getActiveBuffer().tabSetAtCursor()
 	case 'M':
-		t.GetActiveBuffer().reverseIndex()
+		t.getActiveBuffer().reverseIndex()
 	case 'P': // sixel
 		t.handleSixel(readChan)
 	case 'c':
-		t.GetActiveBuffer().clear()
+		t.getActiveBuffer().clear()
 	case '#':
 		return t.handleScreenState(readChan)
 	case '^':
@@ -49,8 +49,8 @@ func (t *Terminal) handleANSI(readChan chan MeasuredRune) (renderRequired bool) 
 	return true
 }
 
-func swallowHandler(size int) func(pty chan MeasuredRune) bool {
-	return func(pty chan MeasuredRune) bool {
+func swallowHandler(size int) func(pty chan measuredRune) bool {
+	return func(pty chan measuredRune) bool {
 		for i := 0; i < size; i++ {
 			<-pty
 		}
@@ -58,20 +58,20 @@ func swallowHandler(size int) func(pty chan MeasuredRune) bool {
 	}
 }
 
-func (t *Terminal) handleScreenState(readChan chan MeasuredRune) bool {
+func (t *Terminal) handleScreenState(readChan chan measuredRune) bool {
 	b := <-readChan
-	switch b.Rune {
+	switch b.rune {
 	case '8': // DECALN -- Screen Alignment Pattern
 
 		// hide cursor?
-		buffer := t.GetActiveBuffer()
+		buffer := t.getActiveBuffer()
 		buffer.resetVerticalMargins(uint(buffer.viewHeight))
 		buffer.SetScrollOffset(0)
 
 		// Fill the whole screen with E's
 		count := buffer.ViewHeight() * buffer.ViewWidth()
 		for count > 0 {
-			buffer.write(MeasuredRune{Rune: 'E', Width: 1})
+			buffer.write(measuredRune{rune: 'E', width: 1})
 			count--
 			if count > 0 && !buffer.modes.AutoWrap && count%buffer.ViewWidth() == 0 {
 				buffer.index()
@@ -86,16 +86,16 @@ func (t *Terminal) handleScreenState(readChan chan MeasuredRune) bool {
 	return true
 }
 
-func (t *Terminal) handlePrivacyMessage(readChan chan MeasuredRune) bool {
+func (t *Terminal) handlePrivacyMessage(readChan chan measuredRune) bool {
 	isEscaped := false
 	for {
 		b := <-readChan
-		if b.Rune == 0x18 /*CAN*/ || b.Rune == 0x1a /*SUB*/ || (b.Rune == 0x5c /*backslash*/ && isEscaped) {
+		if b.rune == 0x18 /*CAN*/ || b.rune == 0x1a /*SUB*/ || (b.rune == 0x5c /*backslash*/ && isEscaped) {
 			break
 		}
 		if isEscaped {
 			isEscaped = false
-		} else if b.Rune == 0x1b {
+		} else if b.rune == 0x1b {
 			isEscaped = true
 			continue
 		}

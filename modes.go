@@ -1,6 +1,6 @@
-package termutil
+package tcellterm
 
-type Modes struct {
+type modes struct {
 	ShowCursor            bool
 	ApplicationCursorKeys bool
 	BlinkingCursor        bool
@@ -12,18 +12,18 @@ type Modes struct {
 	BracketedPasteMode    bool
 }
 
-type MouseMode uint
-type MouseExtMode uint
+type mouseMode uint
+type mouseExtMode uint
 
 const (
-	MouseModeNone MouseMode = iota
-	MouseModeX10
-	MouseModeVT200
-	MouseModeVT200Highlight
-	MouseModeButtonEvent
-	MouseModeAnyEvent
-	MouseExtNone MouseExtMode = iota
-	MouseExtUTF
-	MouseExtSGR
-	MouseExtURXVT
+	mouseModeNone mouseMode = iota
+	mouseModeX10
+	mouseModeVT200
+	mouseModeVT200Highlight
+	mouseModeButtonEvent
+	mouseModeAnyEvent
+	mouseExtNone mouseExtMode = iota
+	mouseExtUTF
+	mouseExtSGR
+	mouseExtURXVT
 )
