@@ -12,8 +12,8 @@ const TabSize = 8
 type CursorShape uint8
 
 const (
-	CursorShapeBlinkingBlock CursorShape = iota
-	CursorShapeDefault
+	CursorShapeDefault CursorShape = iota
+	CursorShapeBlinkingBlock
 	CursorShapeSteadyBlock
 	CursorShapeBlinkingUnderline
 	CursorShapeSteadyUnderline
