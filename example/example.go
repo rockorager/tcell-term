@@ -64,7 +64,7 @@ func (m *model) HandleEvent(ev tcell.Event) bool {
 
 func main() {
 	var err error
-	f, _ := os.Create("meh.log")
+	f, _ := os.Create("log")
 	defer f.Close()
 	logbuf := bytes.NewBuffer(nil)
 	log.SetOutput(io.MultiWriter(f, logbuf))
