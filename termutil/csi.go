@@ -284,9 +284,9 @@ func (t *Terminal) csiWindowManipulation(params []string) (renderRequired bool) 
 			w, h := t.windowManipulator.ScreenSizeInChars()
 			t.WriteToPty([]byte(fmt.Sprintf("\x1b[9;%d;%dt", h, w)))
 		case "20":
-			t.WriteToPty([]byte(fmt.Sprintf("\x1b]L%s\x1b\\", t.windowManipulator.GetTitle())))
+			t.WriteToPty([]byte(fmt.Sprintf("\x1b]1%s\x1b\\", t.windowManipulator.GetTitle())))
 		case "21":
-			t.WriteToPty([]byte(fmt.Sprintf("\x1b]l%s\x1b\\", t.windowManipulator.GetTitle())))
+			t.WriteToPty([]byte(fmt.Sprintf("\x1b]2%s\x1b\\", t.windowManipulator.GetTitle())))
 		case "22":
 			if i < len(params)-1 {
 				i++
