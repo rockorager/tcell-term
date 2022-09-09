@@ -1,6 +1,6 @@
-module git.sr.ht/~ghost08/tcell-term
+module git.sr.ht/~rockorager/tcell-term
 
-go 1.17
+go 1.16
 
 require (
 	github.com/creack/pty v1.1.17

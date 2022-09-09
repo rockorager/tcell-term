@@ -8,7 +8,7 @@ import (
 	"syscall"
 	"time"
 
-	"git.sr.ht/~ghost08/tcell-term/termutil"
+	"git.sr.ht/~rockorager/tcell-term/termutil"
 	"github.com/gdamore/tcell/v2"
 	"github.com/gdamore/tcell/v2/views"
 )

@@ -11,7 +11,7 @@ import (
 	"os"
 	"os/exec"
 
-	tcellterm "git.sr.ht/~ghost08/tcell-term"
+	tcellterm "git.sr.ht/~rockorager/tcell-term"
 	"github.com/gdamore/tcell/v2"
 	"github.com/gdamore/tcell/v2/views"
 )
