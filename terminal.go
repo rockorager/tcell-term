@@ -155,9 +155,11 @@ func (t *Terminal) Close() {
 }
 
 // SetView sets the view for the terminal to draw to. This must be set before
-// calling Draw
+// calling Draw. Setting the view also calls Resize(). Any change to the
+// underlying view requires the host application to call Resize again.
 func (t *Terminal) SetView(view views.View) {
 	t.view = view
+	t.Resize()
 }
 
 // Size reports the current view size in rows, cols
