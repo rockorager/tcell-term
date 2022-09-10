@@ -128,24 +128,19 @@ func (t *Terminal) run(cmd *exec.Cmd, attr *syscall.SysProcAttr) error {
 	if err != nil {
 		return err
 	}
-	// Make sure to close the pty at the end.
-	defer func() { _ = t.pty.Close() }() // Best effort.
 
 	if err := t.setSize(uint16(h), uint16(w)); err != nil {
 		return err
 	}
-
 	// Set stdin in raw mode.
 	if fd := int(os.Stdin.Fd()); term.IsTerminal(fd) {
 		oldState, err := term.MakeRaw(fd)
 		if err != nil {
 			// TODO send an event?
 		}
-		defer func() { _ = term.Restore(fd, oldState) }() // Best effort.
+		defer term.Restore(fd, oldState)
 	}
-
 	go t.process()
-
 	_, _ = io.Copy(t, t.pty)
 	t.Close()
 	return nil
