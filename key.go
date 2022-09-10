@@ -1,6 +1,10 @@
 package tcellterm
 
-import "github.com/gdamore/tcell/v2"
+import (
+	"fmt"
+
+	"github.com/gdamore/tcell/v2"
+)
 
 var (
 	linux_key_map = map[tcell.Key]string{
@@ -65,6 +69,13 @@ var (
 		tcell.KeyRight: "\x1b[1;3C",
 		tcell.KeyLeft:  "\x1b[1;3D",
 	}
+
+	linux_ctrl_alt_key_map = map[tcell.Key]string{
+		tcell.KeyUp:    "\x1b[1;7A",
+		tcell.KeyDown:  "\x1b[1;7B",
+		tcell.KeyRight: "\x1b[1;7C",
+		tcell.KeyLeft:  "\x1b[1;7D",
+	}
 )
 
 func getCtrlCombinationKeyCode(ke *tcell.EventKey) string {
@@ -85,8 +96,16 @@ func getCtrlCombinationKeyCode(ke *tcell.EventKey) string {
 }
 
 func getAltCombinationKeyCode(ke *tcell.EventKey) string {
+	if ke.Modifiers()&tcell.ModCtrl != 0 {
+		if keycode, ok := linux_ctrl_alt_key_map[ke.Key()]; ok {
+			return keycode
+		}
+	}
 	if keycode, ok := linux_alt_key_map[ke.Key()]; ok {
 		return keycode
+	}
+	if ke.Key() != tcell.KeyRune {
+		return fmt.Sprintf("\x1b%c", ke.Key())
 	}
 	code := getKeyCode(ke)
 	return "\x1b" + code

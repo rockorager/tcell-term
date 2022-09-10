@@ -13,7 +13,6 @@ import (
 	"github.com/creack/pty"
 	"github.com/gdamore/tcell/v2"
 	"github.com/gdamore/tcell/v2/views"
-	"golang.org/x/term"
 )
 
 const (
@@ -176,10 +175,10 @@ func (t *Terminal) HandleEvent(e tcell.Event) bool {
 	case *tcell.EventKey:
 		var keycode string
 		switch {
-		case e.Modifiers()&tcell.ModCtrl != 0:
-			keycode = getCtrlCombinationKeyCode(e)
 		case e.Modifiers()&tcell.ModAlt != 0:
 			keycode = getAltCombinationKeyCode(e)
+		case e.Modifiers()&tcell.ModCtrl !=0:
+			keycode = getCtrlCombinationKeyCode(e)
 		default:
 			keycode = getKeyCode(e)
 		}
