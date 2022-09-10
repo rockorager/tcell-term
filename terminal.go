@@ -176,7 +176,7 @@ func (t *Terminal) HandleEvent(e tcell.Event) bool {
 		switch {
 		case e.Modifiers()&tcell.ModAlt != 0:
 			keycode = getAltCombinationKeyCode(e)
-		case e.Modifiers()&tcell.ModCtrl !=0:
+		case e.Modifiers()&tcell.ModCtrl != 0:
 			keycode = getCtrlCombinationKeyCode(e)
 		default:
 			keycode = getKeyCode(e)
