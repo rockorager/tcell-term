@@ -6,19 +6,39 @@ import (
 	"github.com/gdamore/tcell/v2/views"
 )
 
-// EventTitle is emitted when the terminal's title changes
-type EventTitle struct {
+// EventTerminal is a generic terminal event which satisfies the
+// views.EventWidget interface. It is suitable for embedding in specific
+// terminal events.
+type EventTerminal struct {
 	when   time.Time
-	title  string
 	widget *Terminal
 }
 
-func (ev *EventTitle) When() time.Time {
+func newEventTerminal(t *Terminal) *EventTerminal {
+	return &EventTerminal{
+		when:   time.Now(),
+		widget: t,
+	}
+}
+
+func (ev *EventTerminal) When() time.Time {
 	return ev.when
 }
 
-func (ev *EventTitle) Widget() views.Widget {
+func (ev *EventTerminal) Widget() views.Widget {
 	return ev.widget
+}
+
+// EventClosed is emitted when the terminal exits
+type EventClosed struct {
+	*EventTerminal
+}
+
+// EventTitle is emitted when the terminal's title changes
+type EventTitle struct {
+	title string
+
+	*EventTerminal
 }
 
 func (ev *EventTitle) Title() string {

@@ -107,7 +107,6 @@ func (t *Terminal) run(cmd *exec.Cmd, attr *syscall.SysProcAttr) error {
 			}
 			if t.ShouldRedraw() {
 				t.PostEventWidgetContent(t)
-				t.SetRedraw(false)
 			}
 		}
 	}()
@@ -207,6 +206,7 @@ func (t *Terminal) Draw() {
 			}
 		}
 	}
+	t.SetRedraw(false)
 	if buf.isCursorVisible() {
 		t.curVis = true
 		t.curX = int(buf.cursorColumn())
@@ -321,9 +321,8 @@ func (t *Terminal) useMainBuffer() {
 func (t *Terminal) setTitle(title string) {
 	t.title = title
 	t.PostEvent(&EventTitle{
-		title:  title,
-		when:   time.Now(),
-		widget: t,
+		title:         title,
+		EventTerminal: newEventTerminal(t),
 	})
 }
 
