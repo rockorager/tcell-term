@@ -98,20 +98,17 @@ func (t *Terminal) run(cmd *exec.Cmd, attr *syscall.SysProcAttr) error {
 	w, h := t.view.Size()
 	tmr := time.NewTicker(time.Duration(t.interval) * time.Millisecond)
 	go func() {
-		for {
-			select {
-			case <-tmr.C:
-				if t.close {
-					if cmd != nil {
-						cmd.Process.Kill()
-						cmd.Wait()
-					}
-					return
+		for range tmr.C {
+			if t.close {
+				if cmd != nil {
+					cmd.Process.Kill()
+					cmd.Wait()
 				}
-				if t.ShouldRedraw() {
-					t.PostEventWidgetContent(t)
-					t.SetRedraw(false)
-				}
+				return
+			}
+			if t.ShouldRedraw() {
+				t.PostEventWidgetContent(t)
+				t.SetRedraw(false)
 			}
 		}
 	}()
@@ -132,14 +129,12 @@ func (t *Terminal) run(cmd *exec.Cmd, attr *syscall.SysProcAttr) error {
 	if err := t.setSize(uint16(h), uint16(w)); err != nil {
 		return err
 	}
+	// TODO This is most likely not needed
 	// Set stdin in raw mode.
-	if fd := int(os.Stdin.Fd()); term.IsTerminal(fd) {
-		oldState, err := term.MakeRaw(fd)
-		if err != nil {
-			// TODO send an event?
-		}
-		defer term.Restore(fd, oldState)
-	}
+	// if fd := int(os.Stdin.Fd()); term.IsTerminal(fd) {
+	// 	oldState, _ := term.MakeRaw(fd)
+	// 	defer term.Restore(fd, oldState)
+	// }
 	go t.process()
 	_, _ = io.Copy(t, t.pty)
 	t.Close()
