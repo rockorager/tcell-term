@@ -120,7 +120,6 @@ func (t *Terminal) run(cmd *exec.Cmd, attr *syscall.SysProcAttr) error {
 
 	// Start the command with a pty.
 	var err error
-	// t.pty, err = pty.Start(c)
 	winsize := pty.Winsize{
 		Cols: uint16(w),
 		Rows: uint16(h),
