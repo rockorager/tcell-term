@@ -102,6 +102,10 @@ func (t *Terminal) run(cmd *exec.Cmd, attr *syscall.SysProcAttr) error {
 			select {
 			case <-tmr.C:
 				if t.close {
+					if cmd != nil {
+						cmd.Process.Kill()
+						cmd.Wait()
+					}
 					return
 				}
 				if t.ShouldRedraw() {
