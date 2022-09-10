@@ -29,6 +29,7 @@ func (m *model) HandleEvent(ev tcell.Event) bool {
 	case *tcell.EventKey:
 		switch ev.Key() {
 		case tcell.KeyCtrlC:
+			m.term.Close()
 			m.s.Clear()
 			m.s.Fini()
 			return true
@@ -106,10 +107,8 @@ func main() {
 		m.s.Clear()
 		m.s.Fini()
 		os.Stdout.Write(logbuf.Bytes())
-		return
 	}()
 	for {
-		// s.Show()
 		ev := m.s.PollEvent()
 		if ev == nil {
 			break
