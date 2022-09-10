@@ -121,7 +121,14 @@ func (t *Terminal) run(cmd *exec.Cmd, attr *syscall.SysProcAttr) error {
 		Cols: uint16(w),
 		Rows: uint16(h),
 	}
-	t.pty, err = pty.StartWithAttrs(cmd, &winsize, &syscall.SysProcAttr{Setsid: true, Setctty: true, Ctty: 1})
+	t.pty, err = pty.StartWithAttrs(
+		cmd,
+		&winsize,
+		&syscall.SysProcAttr{
+			Setsid:  true,
+			Setctty: true,
+			Ctty:    1,
+		})
 	if err != nil {
 		return err
 	}
