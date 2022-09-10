@@ -103,6 +103,9 @@ func (t *Terminal) run(cmd *exec.Cmd, attr *syscall.SysProcAttr) error {
 					cmd.Process.Kill()
 					cmd.Wait()
 				}
+				t.PostEvent(&EventClosed{
+					EventTerminal: newEventTerminal(t),
+				})
 				return
 			}
 			if t.ShouldRedraw() {
@@ -130,6 +133,7 @@ func (t *Terminal) run(cmd *exec.Cmd, attr *syscall.SysProcAttr) error {
 	if err != nil {
 		return err
 	}
+	defer t.pty.Close()
 
 	if err := t.setSize(uint16(h), uint16(w)); err != nil {
 		return err
@@ -146,10 +150,10 @@ func (t *Terminal) run(cmd *exec.Cmd, attr *syscall.SysProcAttr) error {
 	return nil
 }
 
-// Close ends the process and cleans up the terminal
+// Close ends the process and cleans up the terminal. An EventClosed event will
+// be emitted when the terminal has closed
 func (t *Terminal) Close() {
 	t.close = true
-	t.pty.Close()
 }
 
 // SetView sets the view for the terminal to draw to. This must be set before

@@ -59,6 +59,10 @@ func (m *model) HandleEvent(ev tcell.Event) bool {
 		}
 		m.s.Show()
 		return true
+	case *tcellterm.EventClosed:
+		m.s.Clear()
+		m.s.Fini()
+		return true
 	}
 	return false
 }
@@ -104,9 +108,6 @@ func main() {
 		if err := m.term.Run(cmd); err != nil {
 			log.Println(err)
 		}
-		m.s.Clear()
-		m.s.Fini()
-		os.Stdout.Write(logbuf.Bytes())
 	}()
 	for {
 		ev := m.s.PollEvent()
