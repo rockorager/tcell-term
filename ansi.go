@@ -33,8 +33,10 @@ func (t *Terminal) handleANSI(readChan chan measuredRune) (renderRequired bool) 
 		t.getActiveBuffer().tabSetAtCursor()
 	case 'M':
 		t.getActiveBuffer().reverseIndex()
-	case 'P': // sixel
-		t.handleSixel(readChan)
+	case 'P': // Device Control (DCS)
+		// TODO Add in device control handling. Or just allow sixel
+		// handling if the sequence is right
+		// t.handleSixel(readChan)
 	case 'c':
 		t.getActiveBuffer().clear()
 	case '#':
