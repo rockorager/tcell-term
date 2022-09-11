@@ -206,7 +206,7 @@ func (t *Terminal) Draw() {
 			cell := buf.getCell(viewX, uint16(viewY))
 			if cell == nil {
 				t.view.SetContent(int(viewX), viewY, ' ', nil, tcell.StyleDefault)
-			} else if cell.isDirty() {
+			} else {
 				t.view.SetContent(int(viewX), viewY, cell.rune().rune, nil, cell.style())
 			}
 		}
@@ -242,6 +242,7 @@ func (t *Terminal) Resize() {
 	}
 	w, h := t.view.Size()
 	t.setSize(uint16(h), uint16(w))
+	t.Draw()
 }
 
 func (t *Terminal) getActiveBuffer() *buffer {
