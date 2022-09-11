@@ -198,6 +198,7 @@ func (t *Terminal) Draw() {
 	if t.view == nil {
 		return
 	}
+	t.SetRedraw(false)
 	buf := t.getActiveBuffer()
 	w, h := t.view.Size()
 	for viewY := 0; viewY < h; viewY++ {
@@ -210,7 +211,6 @@ func (t *Terminal) Draw() {
 			}
 		}
 	}
-	t.SetRedraw(false)
 	if buf.isCursorVisible() {
 		t.curVis = true
 		t.curX = int(buf.cursorColumn())
