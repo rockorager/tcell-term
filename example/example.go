@@ -63,6 +63,8 @@ func (m *model) HandleEvent(ev tcell.Event) bool {
 		m.s.Clear()
 		m.s.Fini()
 		return true
+	case *tcell.EventPaste:
+		return m.term.HandleEvent(ev)
 	}
 	return false
 }
@@ -85,6 +87,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(1)
 	}
+	m.s.EnablePaste()
 
 	m.title = views.NewTextBar()
 	m.title.SetCenter(
