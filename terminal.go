@@ -94,6 +94,9 @@ func (t *Terminal) RunWithAttrs(cmd *exec.Cmd, attr *syscall.SysProcAttr) error 
 }
 
 func (t *Terminal) run(cmd *exec.Cmd, attr *syscall.SysProcAttr) error {
+	if cmd == nil {
+		return fmt.Errorf("no command to run")
+	}
 	w, h := t.view.Size()
 	tmr := time.NewTicker(time.Duration(t.interval) * time.Millisecond)
 	go func() {
