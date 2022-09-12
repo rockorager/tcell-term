@@ -794,13 +794,6 @@ func (t *Terminal) sgrSequenceHandler(params []string) bool {
 
 		}
 	}
-
-	x := t.getActiveBuffer().cursorColumn()
-	y := t.getActiveBuffer().cursorLine()
-	if cell := t.getActiveBuffer().getCell(x, y); cell != nil {
-		cell.setStyle(t.getActiveBuffer().cursorAttr)
-	}
-
 	return false
 }
 
