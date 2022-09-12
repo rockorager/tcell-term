@@ -719,7 +719,7 @@ func (t *Terminal) sgrSequenceHandler(params []string) bool {
 		attr := t.getActiveBuffer().getCursorAttr()
 		switch p {
 		case "00", "0", "":
-			*attr = tcell.Style{}
+			*attr = tcell.StyleDefault
 		case "1", "01":
 			*attr = attr.Bold(true)
 		case "2", "02":
