@@ -189,6 +189,15 @@ func (t *Terminal) HandleEvent(e tcell.Event) bool {
 		return true
 	case *tcell.EventResize:
 		t.Resize()
+		return true
+	case *tcell.EventPaste:
+		if e.Start() {
+			t.StartPaste()
+		}
+		if e.End() {
+			t.EndPaste()
+		}
+		return true
 	}
 	return false
 }
@@ -391,4 +400,24 @@ func (t *Terminal) Write(data []byte) (n int, err error) {
 func (t *Terminal) writeToPty(data []byte) error {
 	_, err := t.pty.Write(data)
 	return err
+}
+
+// StartPaste begins a bracketed paste segment. This should be called in
+// response to a tcell.EventPaste event. Alternatively, the event can be passed
+// to the terminal's event handler for proper handling.
+func (t *Terminal) StartPaste() {
+	if !t.activeBuffer.modes.BracketedPasteMode {
+		return
+	}
+	t.writeToPty([]byte("\x1b[200~"))
+}
+
+// EndPaste ends a bracketed paste segment. This should be called in response
+// to a tcell.EventPaste event. Alternatively, the event can be passed to the
+// terminal's event handler for proper handling.
+func (t *Terminal) EndPaste() {
+	if !t.activeBuffer.modes.BracketedPasteMode {
+		return
+	}
+	t.writeToPty([]byte("\x1b[201~"))
 }
