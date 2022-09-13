@@ -65,6 +65,15 @@ func (m *model) HandleEvent(ev tcell.Event) bool {
 		return true
 	case *tcell.EventPaste:
 		return m.term.HandleEvent(ev)
+	case *tcell.EventMouse:
+		// Translate the coordinates to our global coordinates (y-2)
+		x, y := ev.Position()
+		if y-2 < 0 {
+			// Event is outside our view
+			return false
+		}
+		e := tcell.NewEventMouse(x, y-2, ev.Buttons(), ev.Modifiers())
+		return m.term.HandleEvent(e)
 	}
 	return false
 }
@@ -88,6 +97,7 @@ func main() {
 		os.Exit(1)
 	}
 	m.s.EnablePaste()
+	m.s.EnableMouse()
 
 	m.title = views.NewTextBar()
 	m.title.SetCenter(

@@ -35,6 +35,7 @@ type Terminal struct {
 	activeBuffer *buffer
 	mouseMode    mouseMode
 	mouseExtMode mouseExtMode
+	mouseBtnIn   bool
 	redraw       bool
 	title        string
 }
@@ -201,6 +202,24 @@ func (t *Terminal) HandleEvent(e tcell.Event) bool {
 			t.EndPaste()
 		}
 		return true
+	case *tcell.EventMouse:
+		// if mouse mode is off, don't report any mouse events
+		if t.mouseMode == mouseModeNone {
+			return false
+		}
+		if e.Buttons() != tcell.ButtonNone {
+			btn := e.Buttons() - 1
+			x, y := e.Position()
+			if t.mouseBtnIn {
+				// we are dragging, add 32 to button
+				btn = btn + 32
+			}
+			s := fmt.Sprintf("\x1b[<%d;%d;%dM", btn, x+1, y+1)
+			t.mouseBtnIn = true
+			t.writeToPty([]byte(s))
+		} else {
+			t.mouseBtnIn = false
+		}
 	}
 	return false
 }
