@@ -6,7 +6,7 @@ require (
 	github.com/creack/pty v1.1.17
 	github.com/gdamore/tcell/v2 v2.5.3
 	github.com/stretchr/testify v1.7.0
-	golang.org/x/term v0.0.0-20220722155259-a9ba230a4035
+	golang.org/x/term v0.0.0-20220722155259-a9ba230a4035 // indirect
 )
 
 require (

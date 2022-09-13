@@ -2,62 +2,29 @@
 
 A virtual terminal widget for [tcell](https://github.com/gdamore/tcell/)
 
+tcell-term implements the native tcell Widget interface.
+
 ```go
-s, err := tcell.NewScreen()
-if err != nil {
-	panic(err)
-}
-quit := make(chan struct{})
-termRedraw := make(chan struct{})
-
-w, h := s.Size()
-cmd := exec.Cmd("less", "/etc/hosts")
-termWidth, termHeight := w / 2, h / 2
-termX, termY := w / 4, h / 4
+screen := tcell.NewScreen()
 term := tcellterm.New()
+// Create a view. A screen is also a valid view
+view := views.NewViewport(screen, 0, 0, -1, -1)
 
-//run command in term
+// Set the view. This must be set before calling Draw in your event
+// handler
+term.SetView(view)
+
+// Call watch with your model. It should HandleEvent(ev tcell.Event)
+term.Watch(myWidgetEventWatcher)
+
+cmd := exec.Command(os.Getenv("SHELL"))
+
 go func() {
-	term.Run(cmd, termRedraw, termWidth, termHeight)
-	cmd.Wait()
-	quit <- struct{}{}
+	term.Run(cmd)
 }()
-
-//event loop
-go func() {
-	for {
-		ev := s.PollEvent()
-		switch ev := ev.(type) {
-		case *tcell.EventKey:
-			//send key events to the terminal
-			term.Event(ev)
-		case *tcell.EventResize:
-			w, h := s.Size()
-			lh := h / 2
-			lw := w / 2
-			//resize event for the terminal
-			term.Resize(lw, lh)
-			s.Sync()
-		}
-	}
-}()
-
-//draw loop
-loop:
-for {
-	select {
-	case <-quit:
-		break loop
-	//terminal wants to be redrawn
-	case <-termRedraw:
-	}
-	term.Draw(s, termX, termY)
-}
-
-s.Fini()
 ```
 
-For general discussion or patches, use the [mailing list](https://lists.sr.ht/~ghost08/tcell-term): [~ghost08/tcell-term@lists.sr.ht](mailto:~ghost08/tcell-term@lists.sr.ht).
+For general discussion or patches, use the [mailing list](https://lists.sr.ht/~rockorager/tcell-term): [~rockorager/tcell-term@lists.sr.ht](mailto:~rockorager/tcell-term@lists.sr.ht).
 
 ## Contributing
 
@@ -86,7 +53,7 @@ Before sending the patch, you should configure your local clone with sane defaul
 
 ```
 git config format.subjectPrefix "PATCH tcell-term"
-git config sendemail.to "~ghost08/tcell-term@lists.sr.ht"
+git config sendemail.to "~rockorager/tcell-term@lists.sr.ht"
 ```
 
 And send the patch to the mailing list:
