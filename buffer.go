@@ -448,9 +448,7 @@ func (b *buffer) carriageReturn() {
 
 func (b *buffer) tab() {
 	tabStop := b.getNextTabStopAfter(b.cursorPosition.Col)
-	for b.cursorPosition.Col < tabStop && b.cursorPosition.Col < b.viewWidth-1 { // @todo rightMargin
-		b.write(measuredRune{rune: ' ', width: 1})
-	}
+	b.setPosition(tabStop, uint16(b.cursorPosition.Line))
 }
 
 // return next tab stop x pos
