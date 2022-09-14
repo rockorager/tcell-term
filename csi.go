@@ -821,7 +821,7 @@ func (t *Terminal) csiCursorSelection(params []string) (renderRequired bool) {
 }
 
 func (t *Terminal) sendMouseEvent() {
-	flags := []tcell.MouseFlags { }
+	flags := []tcell.MouseFlags{}
 	if t.mouseBtnEvnt {
 		flags = append(flags, tcell.MouseButtonEvents)
 	}

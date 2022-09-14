@@ -36,7 +36,7 @@ type Terminal struct {
 	mouseBtnEvnt bool
 	mouseDrgEvnt bool
 	mouseMtnEvnt bool
-	mouseBtnIn   bool
+	mouseBtnIn   tcell.ButtonMask
 	redraw       bool
 	title        string
 }
@@ -204,18 +204,27 @@ func (t *Terminal) HandleEvent(e tcell.Event) bool {
 		}
 		return true
 	case *tcell.EventMouse:
+		if e.Buttons() == tcell.ButtonNone && t.mouseBtnIn != tcell.ButtonNone {
+			// Button was in, and now it's not
+			x, y := e.Position()
+			s := fmt.Sprintf("\x1b[<%d;%d;%dm", t.mouseBtnIn-1, x+1, y+1)
+			t.mouseBtnIn = tcell.ButtonNone
+			t.writeToPty([]byte(s))
+		}
 		if e.Buttons() != tcell.ButtonNone {
+			// tcell button map is 1 off from the ansi codes
+			// button 0 is main, etc
 			btn := e.Buttons() - 1
 			x, y := e.Position()
-			if t.mouseBtnIn {
+			if t.mouseBtnIn != tcell.ButtonNone {
 				// we are dragging, add 32 to button
 				btn = btn + 32
 			}
 			s := fmt.Sprintf("\x1b[<%d;%d;%dM", btn, x+1, y+1)
-			t.mouseBtnIn = true
+			t.mouseBtnIn = e.Buttons()
 			t.writeToPty([]byte(s))
 		} else {
-			t.mouseBtnIn = false
+			t.mouseBtnIn = tcell.ButtonNone
 		}
 	}
 	return false
@@ -440,5 +449,3 @@ func (t *Terminal) EndPaste() {
 	}
 	t.writeToPty([]byte("\x1b[201~"))
 }
-
-
