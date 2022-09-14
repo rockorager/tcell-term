@@ -536,11 +536,7 @@ func (t *Terminal) csiSetMode(modes string, enabled bool) bool {
 			// DECAWM
 			t.activeBuffer.modes.AutoWrap = enabled
 		case "?9":
-			if enabled {
-				t.mouseMode = (mouseModeX10)
-			} else {
-				t.mouseMode = (mouseModeNone)
-			}
+			// Unsupported
 		case "?12", "?13":
 			t.activeBuffer.modes.BlinkingCursor = enabled
 		case "?25":
@@ -555,41 +551,32 @@ func (t *Terminal) csiSetMode(modes string, enabled bool) bool {
 			// enable mouse tracking
 			// 1000 refers to ext mode for extended mouse click area - otherwise only x <= 255-31
 			if enabled {
-				t.mouseMode = (mouseModeVT200)
+				t.mouseBtnEvnt = true
 			} else {
-				t.mouseMode = (mouseModeNone)
+				t.mouseBtnEvnt = false
 			}
+			t.sendMouseEvent()
 		case "?1002":
 			if enabled {
-				t.mouseMode = (mouseModeButtonEvent)
+				t.mouseDrgEvnt = true
 			} else {
-				t.mouseMode = (mouseModeNone)
+				t.mouseDrgEvnt = false
 			}
+			t.sendMouseEvent()
 		case "?1003":
 			if enabled {
-				t.mouseMode = mouseModeAnyEvent
+				t.mouseMtnEvnt = true
 			} else {
-				t.mouseMode = mouseModeNone
+				t.mouseMtnEvnt = false
 			}
+			t.sendMouseEvent()
 		case "?1005":
-			if enabled {
-				t.mouseExtMode = mouseExtUTF
-			} else {
-				t.mouseExtMode = mouseExtNone
-			}
-
+			// Unsupported
 		case "?1006":
-			if enabled {
-				t.mouseExtMode = mouseExtSGR
-			} else {
-				t.mouseExtMode = (mouseExtNone)
-			}
+			// tcell sets this by default when 1000, 1002, or 1003
+			// are sent
 		case "?1015":
-			if enabled {
-				t.mouseExtMode = (mouseExtURXVT)
-			} else {
-				t.mouseExtMode = (mouseExtNone)
-			}
+			// Unsupported
 		case "?1048":
 			if enabled {
 				t.getActiveBuffer().saveCursor()
@@ -812,4 +799,18 @@ func (t *Terminal) csiCursorSelection(params []string) (renderRequired bool) {
 	}
 	t.getActiveBuffer().setCursorShape(tcell.CursorStyle(i))
 	return true
+}
+
+func (t *Terminal) sendMouseEvent() {
+	flags := []tcell.MouseFlags { }
+	if t.mouseBtnEvnt {
+		flags = append(flags, tcell.MouseButtonEvents)
+	}
+	if t.mouseDrgEvnt {
+		flags = append(flags, tcell.MouseDragEvents)
+	}
+	if t.mouseMtnEvnt {
+		flags = append(flags, tcell.MouseMotionEvents)
+	}
+	t.PostEvent(&EventMouseMode{modes: flags})
 }

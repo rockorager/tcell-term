@@ -74,6 +74,8 @@ func (m *model) HandleEvent(ev tcell.Event) bool {
 		}
 		e := tcell.NewEventMouse(x, y-2, ev.Buttons(), ev.Modifiers())
 		return m.term.HandleEvent(e)
+	case *tcellterm.EventMouseMode:
+		m.s.EnableMouse(ev.Flags()...)
 	}
 	return false
 }
@@ -97,7 +99,6 @@ func main() {
 		os.Exit(1)
 	}
 	m.s.EnablePaste()
-	m.s.EnableMouse()
 
 	m.title = views.NewTextBar()
 	m.title.SetCenter(

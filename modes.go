@@ -12,8 +12,10 @@ type modes struct {
 	BracketedPasteMode    bool
 }
 
-type mouseMode uint
-type mouseExtMode uint
+type (
+	mouseMode    uint
+	mouseExtMode uint
+)
 
 const (
 	mouseModeNone mouseMode = iota
