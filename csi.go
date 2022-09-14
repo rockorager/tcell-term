@@ -538,6 +538,25 @@ func (t *Terminal) csiSetMode(modes string, enabled bool) bool {
 		case "?9":
 			// Unsupported
 		case "?12", "?13":
+			if enabled {
+				switch t.activeBuffer.cursorShape {
+				case tcell.CursorStyleDefault, tcell.CursorStyleSteadyBlock:
+					t.activeBuffer.cursorShape = tcell.CursorStyleBlinkingBlock
+				case tcell.CursorStyleSteadyUnderline:
+					t.activeBuffer.cursorShape = tcell.CursorStyleBlinkingUnderline
+				case tcell.CursorStyleSteadyBar:
+					t.activeBuffer.cursorShape = tcell.CursorStyleBlinkingBar
+				}
+			} else {
+				switch t.activeBuffer.cursorShape {
+				case tcell.CursorStyleBlinkingBar:
+					t.activeBuffer.cursorShape = tcell.CursorStyleSteadyBar
+				case tcell.CursorStyleBlinkingUnderline:
+					t.activeBuffer.cursorShape = tcell.CursorStyleSteadyUnderline
+				case tcell.CursorStyleBlinkingBlock:
+					t.activeBuffer.cursorShape = tcell.CursorStyleSteadyBlock
+				}
+			}
 			t.activeBuffer.modes.BlinkingCursor = enabled
 		case "?25":
 			t.activeBuffer.modes.ShowCursor = enabled
