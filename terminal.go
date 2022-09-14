@@ -104,7 +104,7 @@ func (t *Terminal) run(cmd *exec.Cmd, attr *syscall.SysProcAttr) error {
 	go func() {
 		for range tmr.C {
 			if t.close {
-				if cmd != nil {
+				if cmd != nil && cmd.Process != nil {
 					cmd.Process.Kill()
 					cmd.Wait()
 				}
