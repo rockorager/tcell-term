@@ -664,11 +664,11 @@ func TestShrinkingThenRestoring(t *testing.T) {
 
 	b.cursorPosition.Line = 2
 
-	for i := uint16(29); i > 5; i-- {
+	for i := 29; i > 5; i-- {
 		b.resizeView(i, 100)
 	}
 
-	for i := uint16(15); i < 30; i++ {
+	for i := 15; i < 30; i++ {
 		b.resizeView(i, 100)
 	}
 
@@ -683,6 +683,6 @@ func TestShrinkingThenRestoring(t *testing.T) {
 	require.Equal(t, expected, strings.Join(strs, "\n"))
 }
 
-func makeBufferForTesting(cols, rows uint16) *buffer {
+func makeBufferForTesting(cols, rows int) *buffer {
 	return newBuffer(cols, rows, 100, tcell.ColorWhite, tcell.ColorBlack)
 }

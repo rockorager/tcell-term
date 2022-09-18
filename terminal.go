@@ -140,7 +140,7 @@ func (t *Terminal) run(cmd *exec.Cmd, attr *syscall.SysProcAttr) error {
 	}
 	defer t.pty.Close()
 
-	if err := t.setSize(uint16(h), uint16(w)); err != nil {
+	if err := t.setSize(h, w); err != nil {
 		return err
 	}
 	// TODO This is most likely not needed
@@ -239,12 +239,12 @@ func (t *Terminal) Draw() {
 	buf := t.getActiveBuffer()
 	w, h := t.view.Size()
 	for viewY := 0; viewY < h; viewY++ {
-		for viewX := uint16(0); viewX < uint16(w); viewX++ {
-			cell := buf.getCell(viewX, uint16(viewY))
+		for viewX := 0; viewX < w; viewX++ {
+			cell := buf.getCell(viewX, viewY)
 			if cell == nil {
-				t.view.SetContent(int(viewX), viewY, ' ', nil, tcell.StyleDefault)
+				t.view.SetContent(viewX, viewY, ' ', nil, tcell.StyleDefault)
 			} else {
-				t.view.SetContent(int(viewX), viewY, cell.rune().rune, nil, cell.style())
+				t.view.SetContent(viewX, viewY, cell.rune().rune, nil, cell.style())
 			}
 		}
 	}
@@ -278,7 +278,7 @@ func (t *Terminal) Resize() {
 		return
 	}
 	w, h := t.view.Size()
-	t.setSize(uint16(h), uint16(w))
+	t.setSize(h, w)
 	t.Draw()
 }
 
@@ -345,7 +345,7 @@ func (t *Terminal) useAltBuffer() {
 
 func (t *Terminal) switchBuffer(index uint8) {
 	var carrySize bool
-	var w, h uint16
+	var w, h int
 	if t.activeBuffer != nil {
 		w, h = t.activeBuffer.viewWidth, t.activeBuffer.viewHeight
 		carrySize = true
@@ -379,7 +379,7 @@ func (t *Terminal) SetRedraw(b bool) {
 	t.redraw = b
 }
 
-func (t *Terminal) setSize(rows, cols uint16) error {
+func (t *Terminal) setSize(rows, cols int) error {
 	if t.pty == nil {
 		return fmt.Errorf("terminal is not running")
 	}
@@ -387,8 +387,8 @@ func (t *Terminal) setSize(rows, cols uint16) error {
 	t.activeBuffer.resizeView(cols, rows)
 
 	if err := pty.Setsize(t.pty, &pty.Winsize{
-		Rows: rows,
-		Cols: cols,
+		Rows: uint16(rows),
+		Cols: uint16(cols),
 	}); err != nil {
 		return err
 	}

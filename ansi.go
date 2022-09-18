@@ -67,7 +67,7 @@ func (t *Terminal) handleScreenState(readChan chan measuredRune) bool {
 
 		// hide cursor?
 		buffer := t.getActiveBuffer()
-		buffer.resetVerticalMargins(uint(buffer.viewHeight))
+		buffer.resetVerticalMargins(buffer.viewHeight)
 		buffer.SetScrollOffset(0)
 
 		// Fill the whole screen with E's

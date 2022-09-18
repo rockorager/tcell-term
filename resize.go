@@ -1,7 +1,6 @@
 package tcellterm
 
-func (b *buffer) shrink(width uint16) {
-
+func (b *buffer) shrink(width int) {
 	var replace []line
 
 	prevCursor := int(b.cursorPosition.Line)
@@ -19,8 +18,7 @@ func (b *buffer) shrink(width uint16) {
 		wrappedLines := line.wrap(width)
 
 		if prevCursor >= i {
-			b.cursorPosition.Line += uint64(len(wrappedLines) - 1)
-
+			b.cursorPosition.Line += len(wrappedLines) - 1
 		}
 
 		replace = append(replace, wrappedLines...)
@@ -31,8 +29,7 @@ func (b *buffer) shrink(width uint16) {
 	b.lines = replace
 }
 
-func (b *buffer) grow(width uint16) {
-
+func (b *buffer) grow(width int) {
 	var replace []line
 	var current line
 
@@ -48,7 +45,7 @@ func (b *buffer) grow(width uint16) {
 		}
 
 		if i == prevCursor {
-			b.cursorPosition.Line -= uint64(i - len(replace))
+			b.cursorPosition.Line -= i - len(replace)
 		}
 
 		for _, cell := range line.cells {
@@ -67,8 +64,7 @@ func (b *buffer) grow(width uint16) {
 	b.lines = replace
 }
 
-func (b *buffer) resizeView(width uint16, height uint16) {
-
+func (b *buffer) resizeView(width int, height int) {
 	if b.viewHeight == 0 {
 		b.viewWidth = width
 		b.viewHeight = height
@@ -88,5 +84,5 @@ func (b *buffer) resizeView(width uint16, height uint16) {
 	b.viewWidth = width
 	b.viewHeight = height
 
-	b.resetVerticalMargins(uint(b.viewHeight))
+	b.resetVerticalMargins(b.viewHeight)
 }

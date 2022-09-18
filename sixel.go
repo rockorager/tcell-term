@@ -1,8 +1,8 @@
 package tcellterm
 
 type sixel struct {
-	X    uint16
-	Y    uint64 // raw line
+	X    int
+	Y    int // raw line
 	Data []byte
 }
 
@@ -20,7 +20,6 @@ func (b *buffer) addSixel(data []byte) {
 }
 
 func (b *buffer) getVisibleSixels() []visibleSixel {
-
 	firstLine := b.convertViewLineToRawLine(0)
 	lastLine := b.convertViewLineToRawLine(b.viewHeight - 1)
 
@@ -44,7 +43,6 @@ func (b *buffer) getVisibleSixels() []visibleSixel {
 }
 
 func (t *Terminal) handleSixel(readChan chan measuredRune) (renderRequired bool) {
-
 	var data []rune
 
 	var inEscape bool

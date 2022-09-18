@@ -14,8 +14,8 @@ func newLine() line {
 	}
 }
 
-func (l *line) len() uint16 {
-	return uint16(len(l.cells))
+func (l *line) len() int {
+	return len(l.cells)
 }
 
 func (l *line) string() string {
@@ -30,7 +30,7 @@ func (l *line) append(cells ...cell) {
 	l.cells = append(l.cells, cells...)
 }
 
-func (l *line) shrink(width uint16) {
+func (l *line) shrink(width int) {
 	if l.len() <= width {
 		return
 	}
@@ -46,7 +46,7 @@ func (l *line) shrink(width uint16) {
 	l.cells = cells
 }
 
-func (l *line) wrap(width uint16) []line {
+func (l *line) wrap(width int) []line {
 	var output []line
 	var current line
 

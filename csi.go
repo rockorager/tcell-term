@@ -180,7 +180,7 @@ func (t *Terminal) csiCursorUpHandler(params []string) (renderRequired bool) {
 			distance = 1
 		}
 	}
-	t.getActiveBuffer().movePosition(0, -int16(distance))
+	t.getActiveBuffer().movePosition(0, -distance)
 	return true
 }
 
@@ -196,7 +196,7 @@ func (t *Terminal) csiCursorDownHandler(params []string) (renderRequired bool) {
 		}
 	}
 
-	t.getActiveBuffer().movePosition(0, int16(distance))
+	t.getActiveBuffer().movePosition(0, distance)
 	return true
 }
 
@@ -212,7 +212,7 @@ func (t *Terminal) csiCursorForwardHandler(params []string) (renderRequired bool
 		}
 	}
 
-	t.getActiveBuffer().movePosition(int16(distance), 0)
+	t.getActiveBuffer().movePosition(distance, 0)
 	return true
 }
 
@@ -228,7 +228,7 @@ func (t *Terminal) csiCursorBackwardHandler(params []string) (renderRequired boo
 		}
 	}
 
-	t.getActiveBuffer().movePosition(-int16(distance), 0)
+	t.getActiveBuffer().movePosition(-distance, 0)
 	return true
 }
 
@@ -244,7 +244,7 @@ func (t *Terminal) csiCursorNextLineHandler(params []string) (renderRequired boo
 		}
 	}
 
-	t.getActiveBuffer().movePosition(0, int16(distance))
+	t.getActiveBuffer().movePosition(0, distance)
 	t.getActiveBuffer().setPosition(0, t.getActiveBuffer().cursorLine())
 	return true
 }
@@ -260,7 +260,7 @@ func (t *Terminal) csiCursorPrecedingLineHandler(params []string) (renderRequire
 			distance = 1
 		}
 	}
-	t.getActiveBuffer().movePosition(0, -int16(distance))
+	t.getActiveBuffer().movePosition(0, -distance)
 	t.getActiveBuffer().setPosition(0, t.getActiveBuffer().cursorLine())
 	return true
 }
@@ -277,7 +277,7 @@ func (t *Terminal) csiCursorCharacterAbsoluteHandler(params []string) (renderReq
 		}
 	}
 
-	t.getActiveBuffer().setPosition(uint16(distance-1), t.getActiveBuffer().cursorLine())
+	t.getActiveBuffer().setPosition(distance-1, t.getActiveBuffer().cursorLine())
 	return true
 }
 
@@ -311,7 +311,7 @@ func parseCursorPosition(params []string) (x, y int) {
 // Cursor Position [row;column] (default = [1,1]) (CUP)
 func (t *Terminal) csiCursorPositionHandler(params []string) (renderRequired bool) {
 	x, y := parseCursorPosition(params)
-	t.getActiveBuffer().setPosition(uint16(x-1), uint16(y-1))
+	t.getActiveBuffer().setPosition(x-1, y-1)
 	return true
 }
 
@@ -329,7 +329,7 @@ func (t *Terminal) csiScrollUpHandler(params []string) (renderRequired bool) {
 			distance = 1
 		}
 	}
-	t.getActiveBuffer().areaScrollUp(uint16(distance))
+	t.getActiveBuffer().areaScrollUp(distance)
 	return true
 }
 
@@ -404,39 +404,37 @@ func (t *Terminal) csiScrollDownHandler(params []string) (renderRequired bool) {
 			distance = 1
 		}
 	}
-	t.getActiveBuffer().areaScrollDown(uint16(distance))
+	t.getActiveBuffer().areaScrollDown(distance)
 	return true
 }
 
 // CSI r
 // Set Scrolling Region [top;bottom] (default = full size of window) (DECSTBM), VT100
 func (t *Terminal) csiSetMarginsHandler(params []string) (renderRequired bool) {
-	top := 1
-	bottom := int(t.getActiveBuffer().ViewHeight())
+	var top = 1
+	bottom := t.getActiveBuffer().ViewHeight()
 
 	if len(params) > 2 {
 		return false
 	}
 
 	if len(params) > 0 {
-		var err error
-		top, err = strconv.Atoi(params[0])
+		top, err := strconv.Atoi(params[0])
 		if err != nil || top < 1 {
 			top = 1
 		}
 
 		if len(params) > 1 {
-			var err error
-			bottom, err = strconv.Atoi(params[1])
-			if err != nil || bottom > int(t.getActiveBuffer().ViewHeight()) || bottom < 1 {
-				bottom = int(t.getActiveBuffer().ViewHeight())
+			bottom, err := strconv.Atoi(params[1])
+			if err != nil || bottom > t.getActiveBuffer().ViewHeight() || bottom < 1 {
+				bottom = t.getActiveBuffer().ViewHeight()
 			}
 		}
 	}
 	top--
 	bottom--
 
-	t.activeBuffer.setVerticalMargins(uint(top), uint(bottom))
+	t.activeBuffer.setVerticalMargins(top, bottom)
 	t.getActiveBuffer().setPosition(0, 0)
 	return true
 }
@@ -631,7 +629,7 @@ func (t *Terminal) csiLinePositionAbsoluteHandler(params []string) (renderRequir
 		}
 	}
 
-	t.getActiveBuffer().setPosition(t.getActiveBuffer().cursorColumn(), uint16(row-1))
+	t.getActiveBuffer().setPosition(t.getActiveBuffer().cursorColumn(), row-1)
 
 	return true
 }

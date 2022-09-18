@@ -16,15 +16,15 @@ type buffer struct {
 	cursorShape           tcell.CursorStyle
 	savedCharsets         []*map[rune]rune
 	savedCurrentCharset   int
-	topMargin             uint // see DECSTBM docs - this is for scrollable regions
-	bottomMargin          uint // see DECSTBM docs - this is for scrollable regions
-	viewWidth             uint16
-	viewHeight            uint16
+	topMargin             int // see DECSTBM docs - this is for scrollable regions
+	bottomMargin          int // see DECSTBM docs - this is for scrollable regions
+	viewWidth             int
+	viewHeight            int
 	cursorPosition        position // raw
 	cursorAttr            tcell.Style
-	scrollLinesFromBottom uint
-	maxLines              uint64
-	tabStops              []uint16
+	scrollLinesFromBottom int
+	maxLines              int
+	tabStops              []int
 	charsets              []*map[rune]rune // array of 2 charsets, nil means ASCII (no conversion)
 	currentCharset        int              // active charset index in charsets array, valid values are 0 or 1
 	modes                 modes
@@ -50,19 +50,19 @@ type selection struct {
 }
 
 type position struct {
-	Line uint64
-	Col  uint16
+	Line int
+	Col  int
 }
 
 // newBuffer creates a new terminal buffer
-func newBuffer(width, height uint16, maxLines uint64, fg tcell.Color, bg tcell.Color) *buffer {
+func newBuffer(width, height int, maxLines int, fg tcell.Color, bg tcell.Color) *buffer {
 	b := &buffer{
 		lines:        []line{},
 		viewHeight:   height,
 		viewWidth:    width,
 		maxLines:     maxLines,
 		topMargin:    0,
-		bottomMargin: uint(height - 1),
+		bottomMargin: height - 1,
 		cursorAttr:   tcell.StyleDefault,
 		charsets:     []*map[rune]rune{nil, nil},
 		modes: modes{
@@ -92,44 +92,44 @@ func (b *buffer) isApplicationCursorKeysModeEnabled() bool {
 }
 
 func (b *buffer) hasScrollableRegion() bool {
-	return b.topMargin > 0 || b.bottomMargin < uint(b.ViewHeight())-1
+	return b.topMargin > 0 || b.bottomMargin < b.ViewHeight()-1
 }
 
 func (b *buffer) inScrollableRegion() bool {
 	cursorVY := b.convertRawLineToViewLine(b.cursorPosition.Line)
-	return b.hasScrollableRegion() && uint(cursorVY) >= b.topMargin && uint(cursorVY) <= b.bottomMargin
+	return b.hasScrollableRegion() && cursorVY >= b.topMargin && cursorVY <= b.bottomMargin
 }
 
 // NOTE: bottom is exclusive
-func (b *buffer) getAreaScrollRange() (top uint64, bottom uint64) {
-	top = b.convertViewLineToRawLine(uint16(b.topMargin))
-	bottom = b.convertViewLineToRawLine(uint16(b.bottomMargin)) + 1
-	if bottom > uint64(len(b.lines)) {
-		bottom = uint64(len(b.lines))
+func (b *buffer) getAreaScrollRange() (top int, bottom int) {
+	top = b.convertViewLineToRawLine(b.topMargin)
+	bottom = b.convertViewLineToRawLine(b.bottomMargin) + 1
+	if bottom > len(b.lines) {
+		bottom = len(b.lines)
 	}
 	return top, bottom
 }
 
-func (b *buffer) areaScrollDown(lines uint16) {
+func (b *buffer) areaScrollDown(lines int) {
 	// NOTE: bottom is exclusive
 	top, bottom := b.getAreaScrollRange()
 
 	for i := bottom; i > top; {
 		i--
-		if i >= top+uint64(lines) {
-			b.lines[i] = b.lines[i-uint64(lines)]
+		if i >= top+lines {
+			b.lines[i] = b.lines[i-lines]
 		} else {
 			b.lines[i] = newLine()
 		}
 	}
 }
 
-func (b *buffer) areaScrollUp(lines uint16) {
+func (b *buffer) areaScrollUp(lines int) {
 	// NOTE: bottom is exclusive
 	top, bottom := b.getAreaScrollRange()
 
 	for i := top; i < bottom; i++ {
-		from := i + uint64(lines)
+		from := i + lines
 		if from < bottom {
 			b.lines[i] = b.lines[from]
 		} else {
@@ -167,13 +167,13 @@ func (b *buffer) getCursorAttr() *tcell.Style {
 	return &b.cursorAttr
 }
 
-func (b *buffer) getCell(viewCol uint16, viewRow uint16) *cell {
+func (b *buffer) getCell(viewCol int, viewRow int) *cell {
 	rawLine := b.convertViewLineToRawLine(viewRow)
 	return b.getRawCell(viewCol, rawLine)
 }
 
-func (b *buffer) getRawCell(viewCol uint16, rawLine uint64) *cell {
-	if rawLine >= uint64(len(b.lines)) {
+func (b *buffer) getRawCell(viewCol int, rawLine int) *cell {
+	if rawLine >= len(b.lines) {
 		return nil
 	}
 	line := &b.lines[rawLine]
@@ -184,48 +184,48 @@ func (b *buffer) getRawCell(viewCol uint16, rawLine uint64) *cell {
 }
 
 // Column returns cursor column
-func (b *buffer) cursorColumn() uint16 {
+func (b *buffer) cursorColumn() int {
 	// @todo originMode and left margin
 	return b.cursorPosition.Col
 }
 
 // cursorLineAbsolute returns absolute cursor line coordinate (ignoring Origin Mode) - view format
-func (b *buffer) cursorLineAbsolute() uint16 {
+func (b *buffer) cursorLineAbsolute() int {
 	cursorVY := b.convertRawLineToViewLine(b.cursorPosition.Line)
 	return cursorVY
 }
 
 // cursorLine returns cursor line (in Origin Mode it is relative to the top margin)
-func (b *buffer) cursorLine() uint16 {
+func (b *buffer) cursorLine() int {
 	if b.modes.OriginMode {
-		return b.cursorLineAbsolute() - uint16(b.topMargin)
+		return b.cursorLineAbsolute() - b.topMargin
 	}
 	return b.cursorLineAbsolute()
 }
 
 // cursor Y (raw)
-func (b *buffer) RawLine() uint64 {
+func (b *buffer) RawLine() int {
 	return b.cursorPosition.Line
 }
 
-func (b *buffer) convertViewLineToRawLine(viewLine uint16) uint64 {
+func (b *buffer) convertViewLineToRawLine(viewLine int) int {
 	rawHeight := b.Height()
-	if int(b.viewHeight) > rawHeight {
-		return uint64(viewLine)
+	if b.viewHeight > rawHeight {
+		return viewLine
 	}
-	return uint64(int(viewLine) + (rawHeight - int(b.viewHeight+uint16(b.scrollLinesFromBottom))))
+	return viewLine + rawHeight - b.viewHeight + b.scrollLinesFromBottom
 }
 
-func (b *buffer) convertRawLineToViewLine(rawLine uint64) uint16 {
+func (b *buffer) convertRawLineToViewLine(rawLine int) int {
 	rawHeight := b.Height()
-	if int(b.viewHeight) > rawHeight {
-		return uint16(rawLine)
+	if b.viewHeight > rawHeight {
+		return rawLine
 	}
-	return uint16(int(rawLine) - (rawHeight - int(b.viewHeight+uint16(b.scrollLinesFromBottom))))
+	return rawLine - (rawHeight - (b.viewHeight + b.scrollLinesFromBottom))
 }
 
 func (b *buffer) GetVPosition() int {
-	result := int(uint(b.Height()) - uint(b.ViewHeight()) - b.scrollLinesFromBottom)
+	result := b.Height() - b.ViewHeight() - b.scrollLinesFromBottom
 	if result < 0 {
 		result = 0
 	}
@@ -234,11 +234,11 @@ func (b *buffer) GetVPosition() int {
 }
 
 // Width returns the width of the buffer in columns
-func (b *buffer) Width() uint16 {
+func (b *buffer) Width() int {
 	return b.viewWidth
 }
 
-func (b *buffer) ViewWidth() uint16 {
+func (b *buffer) ViewWidth() int {
 	return b.viewWidth
 }
 
@@ -246,7 +246,7 @@ func (b *buffer) Height() int {
 	return len(b.lines)
 }
 
-func (b *buffer) ViewHeight() uint16 {
+func (b *buffer) ViewHeight() int {
 	return b.viewHeight
 }
 
@@ -304,7 +304,7 @@ func (b *buffer) index() {
 
 	if b.inScrollableRegion() {
 
-		if uint(cursorVY) < b.bottomMargin {
+		if cursorVY < b.bottomMargin {
 			b.cursorPosition.Line++
 		} else {
 			b.areaScrollUp(1)
@@ -316,8 +316,8 @@ func (b *buffer) index() {
 	if cursorVY >= b.ViewHeight()-1 {
 		b.lines = append(b.lines, newLine())
 		maxLines := b.GetMaxLines()
-		if uint64(len(b.lines)) > maxLines {
-			copy(b.lines, b.lines[uint64(len(b.lines))-maxLines:])
+		if len(b.lines) > maxLines {
+			copy(b.lines, b.lines[len(b.lines)-maxLines:])
 			b.lines = b.lines[:maxLines]
 		}
 	}
@@ -327,7 +327,7 @@ func (b *buffer) index() {
 func (b *buffer) reverseIndex() {
 	cursorVY := b.convertRawLineToViewLine(b.cursorPosition.Line)
 
-	if uint(cursorVY) == b.topMargin {
+	if cursorVY == b.topMargin {
 		b.areaScrollDown(1)
 	} else if cursorVY > 0 {
 		b.cursorPosition.Line--
@@ -418,7 +418,7 @@ func (b *buffer) backspace() {
 	if b.cursorPosition.Col == 0 {
 		line := b.getCurrentLine()
 		if line.wrapped {
-			b.movePosition(int16(b.Width()-1), -1)
+			b.movePosition(b.Width()-1, -1)
 		}
 	} else if b.inDoWrap() {
 		// the "do_wrap" implementation
@@ -448,17 +448,17 @@ func (b *buffer) carriageReturn() {
 
 func (b *buffer) tab() {
 	tabStop := b.getNextTabStopAfter(b.cursorPosition.Col)
-	b.setPosition(tabStop, uint16(b.cursorPosition.Line))
+	b.setPosition(tabStop, b.cursorLine())
 }
 
 // return next tab stop x pos
-func (b *buffer) getNextTabStopAfter(col uint16) uint16 {
+func (b *buffer) getNextTabStopAfter(col int) int {
 	defaultStop := col + (tabSize - (col % tabSize))
 	if defaultStop == col {
 		defaultStop += tabSize
 	}
 
-	var low uint16
+	var low int
 	for _, stop := range b.tabStops {
 		if stop > col {
 			if stop < low || low == 0 {
@@ -505,34 +505,34 @@ func (b *buffer) newLineEx(forceCursorToMargin bool) {
 	}
 }
 
-func (b *buffer) movePosition(x int16, y int16) {
-	var toX uint16
-	var toY uint16
+func (b *buffer) movePosition(x int, y int) {
+	var toX int
+	var toY int
 
-	if int16(b.cursorColumn())+x < 0 {
+	if b.cursorColumn()+x < 0 {
 		toX = 0
 	} else {
-		toX = uint16(int16(b.cursorColumn()) + x)
+		toX = b.cursorColumn() + x
 	}
 
 	// should either use CursorLine() and setPosition() or use absolutes, mind Origin Mode (DECOM)
-	if int16(b.cursorLine())+y < 0 {
+	if b.cursorLine()+y < 0 {
 		toY = 0
 	} else {
-		toY = uint16(int16(b.cursorLine()) + y)
+		toY = b.cursorLine() + y
 	}
 
 	b.setPosition(toX, toY)
 }
 
-func (b *buffer) setPosition(col uint16, line uint16) {
+func (b *buffer) setPosition(col int, line int) {
 	useCol := col
 	useLine := line
 	maxLine := b.ViewHeight() - 1
 
 	if b.modes.OriginMode {
-		useLine += uint16(b.topMargin)
-		maxLine = uint16(b.bottomMargin)
+		useLine += b.topMargin
+		maxLine = b.bottomMargin
 		// @todo left and right margins
 	}
 	if useLine > maxLine {
@@ -543,15 +543,16 @@ func (b *buffer) setPosition(col uint16, line uint16) {
 		useCol = b.ViewWidth() - 1
 	}
 
+	l := b.convertViewLineToRawLine(useLine)
 	b.cursorPosition.Col = useCol
-	b.cursorPosition.Line = b.convertViewLineToRawLine(useLine)
+	b.cursorPosition.Line = l
 }
 
 func (b *buffer) GetVisibleLines() []line {
 	lines := []line{}
 
-	for i := b.Height() - int(b.ViewHeight()); i < b.Height(); i++ {
-		y := i - int(b.scrollLinesFromBottom)
+	for i := b.Height() - b.ViewHeight(); i < b.Height(); i++ {
+		y := i - b.scrollLinesFromBottom
 		if y >= 0 && y < len(b.lines) {
 			lines = append(lines, b.lines[y])
 		}
@@ -574,13 +575,13 @@ func (b *buffer) getCurrentLine() *line {
 	return b.getViewLine(cursorVY)
 }
 
-func (b *buffer) getViewLine(index uint16) *line {
+func (b *buffer) getViewLine(index int) *line {
 	if index >= b.ViewHeight() {
 		return &b.lines[len(b.lines)-1]
 	}
 
-	if len(b.lines) < int(b.ViewHeight()) {
-		for int(index) >= len(b.lines) {
+	if len(b.lines) < b.ViewHeight() {
+		for index >= len(b.lines) {
 			b.lines = append(b.lines, newLine())
 		}
 		return &b.lines[int(index)]
@@ -628,7 +629,7 @@ func (b *buffer) eraseLineFromCursor() {
 }
 
 func (b *buffer) eraseDisplay() {
-	for i := uint16(0); i < (b.ViewHeight()); i++ {
+	for i := 0; i < b.ViewHeight(); i++ {
 		rawLine := b.convertViewLineToRawLine(i)
 		if int(rawLine) < len(b.lines) {
 			b.lines[int(rawLine)].cells = []cell{}
@@ -691,30 +692,30 @@ func (b *buffer) eraseDisplayToCursor() {
 
 	cursorVY := b.convertRawLineToViewLine(b.cursorPosition.Line)
 
-	for i := uint16(0); i < cursorVY; i++ {
+	for i := 0; i < cursorVY; i++ {
 		rawLine := b.convertViewLineToRawLine(i)
-		if int(rawLine) < len(b.lines) {
+		if rawLine < len(b.lines) {
 			b.lines[int(rawLine)].cells = []cell{}
 		}
 	}
 }
 
-func (b *buffer) GetMaxLines() uint64 {
+func (b *buffer) GetMaxLines() int {
 	result := b.maxLines
-	if result < uint64(b.viewHeight) {
-		result = uint64(b.viewHeight)
+	if result < b.viewHeight {
+		result = b.viewHeight
 	}
 
 	return result
 }
 
-func (b *buffer) setVerticalMargins(top uint, bottom uint) {
+func (b *buffer) setVerticalMargins(top int, bottom int) {
 	b.topMargin = top
 	b.bottomMargin = bottom
 }
 
 // resetVerticalMargins resets margins to extreme positions
-func (b *buffer) resetVerticalMargins(height uint) {
+func (b *buffer) resetVerticalMargins(height int) {
 	b.setVerticalMargins(0, height-1)
 }
 
@@ -739,12 +740,12 @@ func (b *buffer) tabReset() {
 	b.tabStops = nil
 }
 
-func (b *buffer) tabSet(index uint16) {
+func (b *buffer) tabSet(index int) {
 	b.tabStops = append(b.tabStops, index)
 }
 
-func (b *buffer) tabClear(index uint16) {
-	var filtered []uint16
+func (b *buffer) tabClear(index int) {
+	var filtered []int
 	for _, stop := range b.tabStops {
 		if stop != b.cursorPosition.Col {
 			filtered = append(filtered, stop)
@@ -773,11 +774,11 @@ func (b *buffer) tabSetAtCursor() {
 	b.tabSet(b.cursorPosition.Col)
 }
 
-func (b *buffer) GetScrollOffset() uint {
+func (b *buffer) GetScrollOffset() int {
 	return b.scrollLinesFromBottom
 }
 
-func (b *buffer) SetScrollOffset(offset uint) {
+func (b *buffer) SetScrollOffset(offset int) {
 	b.scrollLinesFromBottom = offset
 }
 
@@ -785,20 +786,20 @@ func (b *buffer) ScrollToEnd() {
 	b.scrollLinesFromBottom = 0
 }
 
-func (b *buffer) ScrollUp(lines uint) {
-	if int(b.scrollLinesFromBottom)+int(lines) < len(b.lines)-int(b.viewHeight) {
+func (b *buffer) ScrollUp(lines int) {
+	if b.scrollLinesFromBottom+lines < len(b.lines)-b.viewHeight {
 		b.scrollLinesFromBottom += lines
 	} else {
-		lines := len(b.lines) - int(b.viewHeight)
+		lines := len(b.lines) - b.viewHeight
 		if lines < 0 {
 			lines = 0
 		}
-		b.scrollLinesFromBottom = uint(lines)
+		b.scrollLinesFromBottom = lines
 	}
 }
 
-func (b *buffer) ScrollDown(lines uint) {
-	if int(b.scrollLinesFromBottom)-int(lines) >= 0 {
+func (b *buffer) ScrollDown(lines int) {
+	if b.scrollLinesFromBottom-lines >= 0 {
 		b.scrollLinesFromBottom -= lines
 	} else {
 		b.scrollLinesFromBottom = 0

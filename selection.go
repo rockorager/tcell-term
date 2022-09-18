@@ -22,23 +22,23 @@ func (b *buffer) fixSelection() bool {
 		return false
 	}
 
-	if b.selectionStart.Line >= uint64(len(b.lines)) {
-		b.selectionStart.Line = uint64(len(b.lines)) - 1
+	if b.selectionStart.Line >= len(b.lines) {
+		b.selectionStart.Line = len(b.lines) - 1
 	}
 
-	if b.selectionEnd.Line >= uint64(len(b.lines)) {
-		b.selectionEnd.Line = uint64(len(b.lines)) - 1
+	if b.selectionEnd.Line >= len(b.lines) {
+		b.selectionEnd.Line = len(b.lines) - 1
 	}
 
-	if b.selectionStart.Col >= uint16(len(b.lines[b.selectionStart.Line].cells)) {
+	if b.selectionStart.Col >= len(b.lines[b.selectionStart.Line].cells) {
 		b.selectionStart.Col = 0
-		if b.selectionStart.Line < uint64(len(b.lines))-1 {
+		if b.selectionStart.Line < len(b.lines)-1 {
 			b.selectionStart.Line++
 		}
 	}
 
-	if b.selectionEnd.Col >= uint16(len(b.lines[b.selectionEnd.Line].cells)) {
-		b.selectionEnd.Col = uint16(len(b.lines[b.selectionEnd.Line].cells)) - 1
+	if b.selectionEnd.Col >= len(b.lines[b.selectionEnd.Line].cells) {
+		b.selectionEnd.Col = len(b.lines[b.selectionEnd.Line].cells) - 1
 	}
 
 	return true
@@ -53,7 +53,7 @@ func (b *buffer) ExtendSelectionToEntireLines() {
 	defer b.selectionMu.Unlock()
 
 	b.selectionStart.Col = 0
-	b.selectionEnd.Col = uint16(len(b.lines[b.selectionEnd.Line].cells)) - 1
+	b.selectionEnd.Col = len(b.lines[b.selectionEnd.Line].cells) - 1
 }
 
 type runeMatcher func(r rune) bool
@@ -81,13 +81,13 @@ func (b *buffer) ClearHighlight() {
 
 // returns raw lines
 func (b *buffer) FindWordAt(pos position, rm runeMatcher) (start position, end position, text string, textIndex int, found bool) {
-	line := b.convertViewLineToRawLine(uint16(pos.Line))
+	line := b.convertViewLineToRawLine(pos.Line)
 	col := pos.Col
 
-	if line >= uint64(len(b.lines)) {
+	if line >= len(b.lines) {
 		return
 	}
-	if col >= uint16(len(b.lines[line].cells)) {
+	if col >= len(b.lines[line].cells) {
 		return
 	}
 
@@ -106,22 +106,22 @@ func (b *buffer) FindWordAt(pos position, rm runeMatcher) (start position, end p
 		Col:  col,
 	}
 
-	var startCol uint16
+	var startCol int
 BACK:
-	for y := int(line); y >= 0; y-- {
-		if y == int(line) {
+	for y := line; y >= 0; y-- {
+		if y == line {
 			startCol = col
 		} else {
 			if len(b.lines[y].cells) < int(b.viewWidth) {
 				break
 			}
-			startCol = uint16(len(b.lines[y].cells) - 1)
+			startCol = len(b.lines[y].cells) - 1
 		}
-		for x := int(startCol); x >= 0; x-- {
+		for x := startCol; x >= 0; x-- {
 			if rm(b.lines[y].cells[x].r.rune) {
 				start = position{
-					Line: uint64(y),
-					Col:  uint16(x),
+					Line: y,
+					Col:  x,
 				}
 				text = string(b.lines[y].cells[x].r.rune) + text
 			} else {
@@ -132,17 +132,17 @@ BACK:
 	}
 	textIndex = len([]rune(text)) - 1
 FORWARD:
-	for y := uint64(line); y < uint64(len(b.lines)); y++ {
+	for y := line; y < len(b.lines); y++ {
 		if y == line {
 			startCol = col + 1
 		} else {
 			startCol = 0
 		}
-		for x := int(startCol); x < len(b.lines[y].cells); x++ {
+		for x := startCol; x < len(b.lines[y].cells); x++ {
 			if rm(b.lines[y].cells[x].r.rune) {
 				end = position{
 					Line: y,
-					Col:  uint16(x),
+					Col:  x,
 				}
 				text = text + string(b.lines[y].cells[x].r.rune)
 			} else {
@@ -162,7 +162,7 @@ func (b *buffer) SetSelectionStart(pos position) {
 	defer b.selectionMu.Unlock()
 	b.selectionStart = &position{
 		Col:  pos.Col,
-		Line: b.convertViewLineToRawLine(uint16(pos.Line)),
+		Line: b.convertViewLineToRawLine(pos.Line),
 	}
 }
 
@@ -177,7 +177,7 @@ func (b *buffer) SetSelectionEnd(pos position) {
 	defer b.selectionMu.Unlock()
 	b.selectionEnd = &position{
 		Col:  pos.Col,
-		Line: b.convertViewLineToRawLine(uint16(pos.Line)),
+		Line: b.convertViewLineToRawLine(pos.Line),
 	}
 }
 
@@ -206,7 +206,7 @@ func (b *buffer) GetSelection() (string, *selection) {
 
 	var text string
 	for y := start.Line; y <= end.Line; y++ {
-		if y >= uint64(len(b.lines)) {
+		if y >= len(b.lines) {
 			break
 		}
 		line := b.lines[y]
@@ -239,13 +239,12 @@ func (b *buffer) GetSelection() (string, *selection) {
 		End:   end,
 	}
 
-	viewSelection.Start.Line = uint64(b.convertRawLineToViewLine(viewSelection.Start.Line))
-	viewSelection.End.Line = uint64(b.convertRawLineToViewLine(viewSelection.End.Line))
+	viewSelection.Start.Line = b.convertRawLineToViewLine(viewSelection.Start.Line)
+	viewSelection.End.Line = b.convertRawLineToViewLine(viewSelection.End.Line)
 	return text, &viewSelection
 }
 
 func (b *buffer) InSelection(pos position) bool {
-
 	if !b.fixSelection() {
 		return false
 	}
@@ -261,7 +260,7 @@ func (b *buffer) InSelection(pos position) bool {
 		start = swap
 	}
 
-	rY := b.convertViewLineToRawLine(uint16(pos.Line))
+	rY := b.convertViewLineToRawLine(pos.Line)
 	if rY < start.Line {
 		return false
 	}
@@ -287,24 +286,23 @@ func (b *buffer) GetHighlightAnnotation() *annotation {
 }
 
 func (b *buffer) GetViewHighlight() (start position, end position, exists bool) {
-
 	if b.highlightStart == nil || b.highlightEnd == nil {
 		return
 	}
 
-	if b.highlightStart.Line >= uint64(len(b.lines)) {
+	if b.highlightStart.Line >= len(b.lines) {
 		return
 	}
 
-	if b.highlightEnd.Line >= uint64(len(b.lines)) {
+	if b.highlightEnd.Line >= len(b.lines) {
 		return
 	}
 
-	if b.highlightStart.Col >= uint16(len(b.lines[b.highlightStart.Line].cells)) {
+	if b.highlightStart.Col >= len(b.lines[b.highlightStart.Line].cells) {
 		return
 	}
 
-	if b.highlightEnd.Col >= uint16(len(b.lines[b.highlightEnd.Line].cells)) {
+	if b.highlightEnd.Col >= len(b.lines[b.highlightEnd.Line].cells) {
 		return
 	}
 
@@ -317,8 +315,8 @@ func (b *buffer) GetViewHighlight() (start position, end position, exists bool) 
 		start = swap
 	}
 
-	start.Line = uint64(b.convertRawLineToViewLine(start.Line))
-	end.Line = uint64(b.convertRawLineToViewLine(end.Line))
+	start.Line = b.convertRawLineToViewLine(start.Line)
+	end.Line = b.convertRawLineToViewLine(end.Line)
 
 	return start, end, true
 }
