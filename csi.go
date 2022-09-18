@@ -719,7 +719,8 @@ func (t *Terminal) sgrSequenceHandler(params []string) bool {
 		params = []string{"0"}
 	}
 
-	for i, p := range params {
+	for i := 0; i < len(params); i++ {
+		p := params[i]
 		attr := t.getActiveBuffer().getCursorAttr()
 		switch p {
 		case "00", "0", "":
@@ -757,21 +758,36 @@ func (t *Terminal) sgrSequenceHandler(params []string) bool {
 		case "29":
 			*attr = attr.StrikeThrough(false)
 		case "38": // set foreground
-			fg, err := colorFromAnsi(params[i+1:])
+			var err error
+			var fg tcell.Color
+			if i+2 < len(params) && params[i+1] == "5" {
+				fg, err = colorFromAnsi(params[i+1 : i+3])
+				i += 2
+			} else if i+4 < len(params) && params[i+1] == "2" {
+				fg, err = colorFromAnsi(params[i+1 : i+5])
+				i += 4
+			}
 			if err != nil {
 				*attr = attr.Foreground(defaultForeground())
 			} else {
 				*attr = attr.Foreground(fg)
 			}
-			return false
 		case "48": // set background
-			bg, err := colorFromAnsi(params[i+1:])
+			var err error
+			var bg tcell.Color
+			if i+2 < len(params) && params[i+1] == "5" {
+				bg, err = colorFromAnsi(params[i+1 : i+3])
+				i += 2
+			} else if i+4 < len(params) && params[i+1] == "2" {
+				bg, err = colorFromAnsi(params[i+1 : i+5])
+				i += 4
+			}
+
 			if err != nil {
 				*attr = attr.Background(defaultBackground())
 			} else {
 				*attr = attr.Background(bg)
 			}
-			return false
 		case "39":
 			*attr = attr.Foreground(defaultForeground())
 		case "49":
