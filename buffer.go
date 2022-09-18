@@ -20,7 +20,7 @@ type buffer struct {
 	bottomMargin          int // see DECSTBM docs - this is for scrollable regions
 	viewWidth             int
 	viewHeight            int
-	cursorPosition        position // raw
+	cursorPosition        *position // raw
 	cursorAttr            tcell.Style
 	scrollLinesFromBottom int
 	maxLines              int
@@ -70,7 +70,8 @@ func newBuffer(width, height int, maxLines int, fg tcell.Color, bg tcell.Color) 
 			AutoWrap:     true,
 			ShowCursor:   true,
 		},
-		cursorShape: tcell.CursorStyleDefault,
+		cursorShape:    tcell.CursorStyleDefault,
+		cursorPosition: &position{},
 	}
 	return b
 }
@@ -141,7 +142,7 @@ func (b *buffer) areaScrollUp(lines int) {
 func (b *buffer) saveCursor() {
 	copiedAttr := b.cursorAttr
 	b.savedCursorAttr = &copiedAttr
-	b.savedCursorPos = b.cursorPosition
+	b.savedCursorPos = *b.cursorPosition
 	b.savedCharsets = make([]*map[rune]rune, len(b.charsets))
 	copy(b.savedCharsets, b.charsets)
 	b.savedCurrentCharset = b.currentCharset
@@ -155,7 +156,7 @@ func (b *buffer) restoreCursor() {
 	// copiedAttr.fgColour = buffer.defaultCell(false).attr.fgColour
 	// buffer.cursorAttr = copiedAttr
 	//}
-	b.cursorPosition = b.savedCursorPos
+	*b.cursorPosition = b.savedCursorPos
 	if b.savedCharsets != nil {
 		b.charsets = make([]*map[rune]rune, len(b.savedCharsets))
 		copy(b.charsets, b.savedCharsets)
