@@ -42,6 +42,9 @@ READ:
 	switch pS[0] {
 	case "0", "2", "l":
 		t.setTitle(pT)
+	case "8":
+		attr := t.getActiveBuffer().getCursorAttr()
+		*attr = attr.Url(pT)
 	case "10": // get/set foreground colour
 		if len(pS) > 1 {
 			if pS[1] == "?" {
