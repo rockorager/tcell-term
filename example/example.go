@@ -113,7 +113,7 @@ func main() {
 	m.title.SetView(m.titleView)
 
 	m.termView = views.NewViewPort(m.s, 0, 2, -1, -1)
-	m.term = tcellterm.New()
+	m.term = tcellterm.New(tcellterm.WithRecorder("recording.log"))
 	m.term.Watch(m)
 	m.term.SetView(m.termView)
 

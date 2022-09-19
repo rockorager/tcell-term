@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path"
 	"syscall"
 	"time"
 
@@ -37,6 +38,7 @@ type Terminal struct {
 	mouseDrgEvnt bool
 	mouseMtnEvnt bool
 	mouseBtnIn   tcell.ButtonMask
+	recorder     *os.File
 	redraw       bool
 	title        string
 }
@@ -82,6 +84,19 @@ func WithPollInterval(interval int) option {
 			interval = 1
 		}
 		t.interval = interval
+	}
+}
+
+func WithRecorder(p string) option {
+	return func(t *Terminal) {
+		if !path.IsAbs(p) {
+			wd, err := os.Getwd()
+			if err != nil {
+				return
+			}
+			path.Join(wd, p)
+		}
+		t.recorder, _ = os.Create(p)
 	}
 }
 
@@ -415,6 +430,9 @@ func (t *Terminal) process() {
 // Write takes data from StdOut of the child shell and processes it
 func (t *Terminal) Write(data []byte) (n int, err error) {
 	reader := bufio.NewReader(bytes.NewBuffer(data))
+	if t.recorder != nil {
+		t.recorder.Write(data)
+	}
 	for {
 		r, size, err := reader.ReadRune()
 		if err == io.EOF {
