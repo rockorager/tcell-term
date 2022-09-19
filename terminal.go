@@ -134,8 +134,6 @@ func (t *Terminal) run(cmd *exec.Cmd, attr *syscall.SysProcAttr) error {
 		}
 	}()
 
-	cmd.Env = append(os.Environ(), "TERM=xterm-256color")
-
 	// Start the command with a pty.
 	var err error
 	winsize := pty.Winsize{
