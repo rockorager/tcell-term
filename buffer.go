@@ -120,7 +120,7 @@ func (b *buffer) areaScrollDown(lines int) {
 		if i >= top+lines {
 			b.lines[i] = b.lines[i-lines]
 		} else {
-			b.lines[i] = newLine()
+			b.lines[i] = b.blankLine()
 		}
 	}
 }
@@ -134,7 +134,7 @@ func (b *buffer) areaScrollUp(lines int) {
 		if from < bottom {
 			b.lines[i] = b.lines[from]
 		} else {
-			b.lines[i] = newLine()
+			b.lines[i] = b.blankLine()
 		}
 	}
 }
@@ -315,7 +315,7 @@ func (b *buffer) index() {
 	}
 
 	if cursorVY >= b.ViewHeight()-1 {
-		b.lines = append(b.lines, newLine())
+		b.lines = append(b.lines, b.blankLine())
 		maxLines := b.GetMaxLines()
 		if len(b.lines) > maxLines {
 			copy(b.lines, b.lines[len(b.lines)-maxLines:])
@@ -565,7 +565,7 @@ func (b *buffer) GetVisibleLines() []line {
 
 func (b *buffer) clear() {
 	for i := 0; i < int(b.ViewHeight()); i++ {
-		b.lines = append(b.lines, newLine())
+		b.lines = append(b.lines, b.blankLine())
 	}
 	b.setPosition(0, 0)
 }
@@ -583,7 +583,7 @@ func (b *buffer) getViewLine(index int) *line {
 
 	if len(b.lines) < b.ViewHeight() {
 		for index >= len(b.lines) {
-			b.lines = append(b.lines, newLine())
+			b.lines = append(b.lines, b.blankLine())
 		}
 		return &b.lines[int(index)]
 	}
@@ -823,5 +823,22 @@ func (b *buffer) ScrollDown(lines int) {
 		b.scrollLinesFromBottom -= lines
 	} else {
 		b.scrollLinesFromBottom = 0
+	}
+}
+
+func (b *buffer) blankLine() line {
+	cells := []cell{}
+	for x := 0; x < b.ViewWidth(); x++ {
+		cell := b.defaultCell(false)
+		cell.setStyle(*b.getCursorAttr())
+		cell.setRune(measuredRune{
+			rune:  ' ',
+			width: 1,
+		})
+		cells = append(cells, cell)
+	}
+	return line{
+		wrapped: false,
+		cells:   cells,
 	}
 }

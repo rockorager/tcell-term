@@ -7,13 +7,6 @@ type line struct {
 	cells   []cell
 }
 
-func newLine() line {
-	return line{
-		wrapped: false,
-		cells:   []cell{},
-	}
-}
-
 func (l *line) len() int {
 	return len(l.cells)
 }
