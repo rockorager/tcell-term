@@ -214,7 +214,7 @@ func (b *buffer) convertViewLineToRawLine(viewLine int) int {
 	if b.viewHeight > rawHeight {
 		return viewLine
 	}
-	return viewLine + rawHeight - b.viewHeight + b.scrollLinesFromBottom
+	return viewLine + rawHeight - (b.viewHeight + b.scrollLinesFromBottom)
 }
 
 func (b *buffer) convertRawLineToViewLine(rawLine int) int {

@@ -45,7 +45,7 @@ func (b *buffer) grow(width int) {
 		}
 
 		if i == prevCursor {
-			b.cursorPosition.Line -= i - len(replace)
+			b.cursorPosition.Line -= (i - len(replace))
 		}
 
 		for _, cell := range line.cells {
