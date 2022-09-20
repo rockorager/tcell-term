@@ -93,7 +93,7 @@ func (b *buffer) isApplicationCursorKeysModeEnabled() bool {
 }
 
 func (b *buffer) hasScrollableRegion() bool {
-	return b.topMargin > 0 || b.bottomMargin < b.ViewHeight()-1
+	return (b.topMargin > 0) || (b.bottomMargin < (b.ViewHeight() - 1))
 }
 
 func (b *buffer) inScrollableRegion() bool {
