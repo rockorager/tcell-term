@@ -630,10 +630,20 @@ func (b *buffer) eraseLineFromCursor() {
 }
 
 func (b *buffer) eraseDisplay() {
-	for i := 0; i < b.ViewHeight(); i++ {
-		rawLine := b.convertViewLineToRawLine(i)
-		if int(rawLine) < len(b.lines) {
-			b.lines[int(rawLine)].cells = []cell{}
+	for y := 0; y < b.ViewHeight(); y++ {
+		rawLine := b.convertViewLineToRawLine(y)
+		if rawLine < len(b.lines) {
+			cells := []cell{}
+			for x := 0; x < b.ViewWidth(); x++ {
+				cell := b.defaultCell(false)
+				cell.setStyle(*b.getCursorAttr())
+				cell.setRune(measuredRune{
+					rune:  ' ',
+					width: 1,
+				})
+				cells = append(cells, cell)
+			}
+			b.lines[rawLine].cells = cells
 		}
 	}
 }
@@ -720,8 +730,9 @@ func (b *buffer) resetVerticalMargins(height int) {
 	b.setVerticalMargins(0, height-1)
 }
 
+// defaultCell returns a cell with default styling
 func (b *buffer) defaultCell(applyEffects bool) cell {
-	attr := b.cursorAttr
+	attr := tcell.StyleDefault
 	if !applyEffects {
 		attr = attr.Blink(false)
 		attr = attr.Bold(false)
