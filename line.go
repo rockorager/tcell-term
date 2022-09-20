@@ -29,19 +29,3 @@ func (l *line) string() string {
 func (l *line) append(cells ...cell) {
 	l.cells = append(l.cells, cells...)
 }
-
-func (l *line) shrink(width int) {
-	if l.len() <= width {
-		return
-	}
-	remove := l.len() - width
-	var cells []cell
-	for _, cell := range l.cells {
-		if cell.r.rune == 0 && remove > 0 {
-			remove--
-		} else {
-			cells = append(cells, cell)
-		}
-	}
-	l.cells = cells
-}
