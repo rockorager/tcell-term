@@ -469,7 +469,7 @@ func TestEraseLineAfterCursor(t *testing.T) {
 }
 
 func TestEraseDisplay(t *testing.T) {
-	b := makeBufferForTesting(80, 5)
+	b := makeBufferForTesting(10, 5)
 	writeRaw(b, []rune("hello")...)
 	b.carriageReturn()
 	b.newLine()
@@ -481,7 +481,8 @@ func TestEraseDisplay(t *testing.T) {
 	b.eraseDisplay()
 	lines := b.GetVisibleLines()
 	for _, line := range lines {
-		assert.Equal(t, "", line.string())
+		// Erase display should put in blank characters
+		assert.Equal(t, "          ", line.string())
 	}
 }
 
@@ -527,84 +528,6 @@ func TestBackspace(t *testing.T) {
 	writeRaw(b, []rune("p")...)
 	lines := b.GetVisibleLines()
 	assert.Equal(t, "helpo", lines[0].string())
-}
-
-func TestHorizontalResizeView(t *testing.T) {
-	b := makeBufferForTesting(80, 10)
-
-	// 60 characters
-	writeRaw(b, []rune(`hellohellohellohellohellohellohellohellohellohellohellohello`)...)
-
-	b.carriageReturn()
-	b.newLine()
-
-	writeRaw(b, []rune(`goodbyegoodbye`)...)
-
-	require.Equal(t, 14, b.cursorPosition.Col)
-	require.Equal(t, 1, b.cursorPosition.Line)
-
-	b.resizeView(40, 10)
-
-	expected := `hellohellohellohellohellohellohellohello
-hellohellohellohello
-goodbyegoodbye`
-
-	require.Equal(t, 14, b.cursorPosition.Col)
-	require.Equal(t, 2, b.cursorPosition.Line)
-
-	lines := b.GetVisibleLines()
-	strs := []string{}
-	for _, l := range lines {
-		strs = append(strs, l.string())
-	}
-	require.Equal(t, expected, strings.Join(strs, "\n"))
-
-	b.resizeView(20, 10)
-
-	expected = `hellohellohellohello
-hellohellohellohello
-hellohellohellohello
-goodbyegoodbye`
-
-	lines = b.GetVisibleLines()
-	strs = []string{}
-	for _, l := range lines {
-		strs = append(strs, l.string())
-	}
-	require.Equal(t, expected, strings.Join(strs, "\n"))
-
-	b.resizeView(10, 10)
-
-	expected = `hellohello
-hellohello
-hellohello
-hellohello
-hellohello
-hellohello
-goodbyegoo
-dbye`
-
-	lines = b.GetVisibleLines()
-	strs = []string{}
-	for _, l := range lines {
-		strs = append(strs, l.string())
-	}
-	require.Equal(t, expected, strings.Join(strs, "\n"))
-
-	b.resizeView(80, 20)
-
-	expected = `hellohellohellohellohellohellohellohellohellohellohellohello
-goodbyegoodbye`
-
-	lines = b.GetVisibleLines()
-	strs = []string{}
-	for _, l := range lines {
-		strs = append(strs, l.string())
-	}
-	require.Equal(t, expected, strings.Join(strs, "\n"))
-
-	require.Equal(t, 4, b.cursorPosition.Col)
-	require.Equal(t, 1, b.cursorPosition.Line)
 }
 
 func TestBufferMaxLines(t *testing.T) {

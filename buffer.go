@@ -786,6 +786,14 @@ func (b *buffer) tabSetAtCursor() {
 	b.tabSet(b.cursorPosition.Col)
 }
 
+func (b *buffer) resizeView(width int, height int) {
+	b.viewWidth = width
+	b.viewHeight = height
+	// scroll to bottom
+	b.scrollLinesFromBottom = 0
+	b.resetVerticalMargins(b.viewHeight)
+}
+
 func (b *buffer) GetScrollOffset() int {
 	return b.scrollLinesFromBottom
 }
