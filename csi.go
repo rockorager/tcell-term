@@ -411,7 +411,8 @@ func (t *Terminal) csiScrollDownHandler(params []string) (renderRequired bool) {
 // CSI r
 // Set Scrolling Region [top;bottom] (default = full size of window) (DECSTBM), VT100
 func (t *Terminal) csiSetMarginsHandler(params []string) (renderRequired bool) {
-	var top = 1
+	var err error
+	top := 1
 	bottom := t.getActiveBuffer().ViewHeight()
 
 	if len(params) > 2 {
@@ -419,13 +420,13 @@ func (t *Terminal) csiSetMarginsHandler(params []string) (renderRequired bool) {
 	}
 
 	if len(params) > 0 {
-		top, err := strconv.Atoi(params[0])
+		top, err = strconv.Atoi(params[0])
 		if err != nil || top < 1 {
 			top = 1
 		}
 
 		if len(params) > 1 {
-			bottom, err := strconv.Atoi(params[1])
+			bottom, err = strconv.Atoi(params[1])
 			if err != nil || bottom > t.getActiveBuffer().ViewHeight() || bottom < 1 {
 				bottom = t.getActiveBuffer().ViewHeight()
 			}
