@@ -45,21 +45,3 @@ func (l *line) shrink(width int) {
 	}
 	l.cells = cells
 }
-
-func (l *line) wrap(width int) []line {
-	var output []line
-	var current line
-
-	current.wrapped = l.wrapped
-
-	for _, cell := range l.cells {
-		if len(current.cells) == int(width) {
-			output = append(output, current)
-			current = newLine()
-			current.wrapped = true
-		}
-		current.cells = append(current.cells, cell)
-	}
-
-	return append(output, current)
-}
