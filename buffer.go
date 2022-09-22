@@ -178,7 +178,7 @@ func (b *buffer) getRawCell(viewCol int, rawLine int) *cell {
 		return nil
 	}
 	line := &b.lines[rawLine]
-	if int(viewCol) >= len(line.cells) {
+	if viewCol >= len(line.cells) {
 		return nil
 	}
 	return &line.cells[viewCol]
@@ -264,7 +264,7 @@ func (b *buffer) insertLine() {
 }
 
 func (b *buffer) insertBlankCharacters(count int) {
-	index := int(b.RawLine())
+	index := b.RawLine()
 	for i := 0; i < count; i++ {
 		cells := b.lines[index].cells
 		b.lines[index].cells = append(cells[:b.cursorPosition.Col], append([]cell{b.defaultCell(true)}, cells[b.cursorPosition.Col:]...)...)
@@ -358,8 +358,8 @@ func (b *buffer) write(runes ...measuredRune) {
 				}
 			}
 
-			for int(b.cursorColumn()) >= len(line.cells) {
-				line.append(b.defaultCell(int(b.cursorColumn()) == len(line.cells)))
+			for b.cursorColumn() >= len(line.cells) {
+				line.append(b.defaultCell(b.cursorColumn() == len(line.cells)))
 			}
 			line.cells[b.cursorPosition.Col].attr = b.cursorAttr
 			line.cells[b.cursorPosition.Col].setRune(r)
@@ -387,8 +387,8 @@ func (b *buffer) write(runes ...measuredRune) {
 			}
 		} else {
 
-			for int(b.cursorColumn()) >= len(line.cells) {
-				line.append(b.defaultCell(int(b.cursorColumn()) == len(line.cells)))
+			for b.cursorColumn() >= len(line.cells) {
+				line.append(b.defaultCell(b.cursorColumn() == len(line.cells)))
 			}
 
 			cell := &line.cells[b.cursorColumn()]
@@ -585,10 +585,10 @@ func (b *buffer) getViewLine(index int) *line {
 		for index >= len(b.lines) {
 			b.lines = append(b.lines, b.defaultLine())
 		}
-		return &b.lines[int(index)]
+		return &b.lines[index]
 	}
 
-	if raw := int(b.convertViewLineToRawLine(index)); raw < len(b.lines) {
+	if raw := b.convertViewLineToRawLine(index); raw < len(b.lines) {
 		return &b.lines[raw]
 	}
 
@@ -598,7 +598,7 @@ func (b *buffer) getViewLine(index int) *line {
 func (b *buffer) eraseLine() {
 	line := b.getCurrentLine()
 
-	for i := 0; i < int(b.viewWidth); i++ {
+	for i := 0; i < b.viewWidth; i++ {
 		if i >= len(line.cells) {
 			line.cells = append(line.cells, b.defaultCell(false))
 		} else {
@@ -609,8 +609,7 @@ func (b *buffer) eraseLine() {
 
 func (b *buffer) eraseLineToCursor() {
 	line := b.getCurrentLine()
-	_, bg, _ := b.cursorAttr.Decompose()
-	for i := 0; i <= int(b.cursorPosition.Col); i++ {
+	for i := 0; i <= b.cursorPosition.Col; i++ {
 		if i < len(line.cells) {
 			line.cells[i] = b.defaultCell(false)
 		}
@@ -621,7 +620,7 @@ func (b *buffer) eraseLineFromCursor() {
 	line := b.getCurrentLine()
 
 	for i := b.cursorPosition.Col; i < b.viewWidth; i++ {
-		if int(i) >= len(line.cells) {
+		if i >= len(line.cells) {
 			line.cells = append(line.cells, b.defaultCell(false))
 		} else {
 			line.cells[i] = b.defaultCell(false)
@@ -640,51 +639,51 @@ func (b *buffer) eraseDisplay() {
 
 func (b *buffer) deleteChars(n int) {
 	line := b.getCurrentLine()
-	if int(b.cursorPosition.Col) >= len(line.cells) {
+	if b.cursorPosition.Col >= len(line.cells) {
 		return
 	}
 	before := line.cells[:b.cursorPosition.Col]
-	if int(b.cursorPosition.Col)+n >= len(line.cells) {
-		n = len(line.cells) - int(b.cursorPosition.Col)
+	if b.cursorPosition.Col+n >= len(line.cells) {
+		n = len(line.cells) - b.cursorPosition.Col
 	}
-	after := line.cells[int(b.cursorPosition.Col)+n:]
+	after := line.cells[b.cursorPosition.Col+n:]
 	line.cells = append(before, after...)
 }
 
 func (b *buffer) eraseCharacters(n int) {
 	line := b.getCurrentLine()
 
-	max := int(b.cursorPosition.Col) + n
+	max := b.cursorPosition.Col + n
 	if max > len(line.cells) {
 		max = len(line.cells)
 	}
 
-	_, bg, _ := b.cursorAttr.Decompose()
-	for i := int(b.cursorPosition.Col); i < max; i++ {
-		line.cells[i].erase(bg)
+	for i := b.cursorPosition.Col; i < max; i++ {
+		// TODO should this be default or blank?
+		line.cells[i] = b.blankCell()
 	}
 }
 
 func (b *buffer) eraseDisplayFromCursor() {
 	line := b.getCurrentLine()
 
-	max := int(b.cursorPosition.Col)
-	if max > len(line.cells) {
-		max = len(line.cells)
+	pos := b.cursorPosition.Col
+	if pos > len(line.cells) {
+		pos = len(line.cells)
+	}
+	for i := pos; i < len(line.cells); i++ {
+		line.cells[i] = b.defaultCell(false)
 	}
 
-	line.cells = line.cells[:max]
-
-	for rawLine := b.cursorPosition.Line + 1; int(rawLine) < len(b.lines); rawLine++ {
-		b.lines[int(rawLine)].cells = []cell{}
+	for rawLine := b.cursorPosition.Line + 1; rawLine < len(b.lines); rawLine++ {
+		b.lines[rawLine] = b.defaultLine()
 	}
 }
 
 func (b *buffer) eraseDisplayToCursor() {
 	line := b.getCurrentLine()
 
-	_, bg, _ := b.cursorAttr.Decompose()
-	for i := 0; i <= int(b.cursorPosition.Col); i++ {
+	for i := 0; i <= b.cursorPosition.Col; i++ {
 		if i >= len(line.cells) {
 			break
 		}
