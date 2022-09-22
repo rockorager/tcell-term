@@ -120,7 +120,7 @@ func (b *buffer) areaScrollDown(lines int) {
 		if i >= top+lines {
 			b.lines[i] = b.lines[i-lines]
 		} else {
-			b.lines[i] = b.blankLine()
+			b.lines[i] = b.defaultLine()
 		}
 	}
 }
@@ -134,7 +134,7 @@ func (b *buffer) areaScrollUp(lines int) {
 		if from < bottom {
 			b.lines[i] = b.lines[from]
 		} else {
-			b.lines[i] = b.blankLine()
+			b.lines[i] = b.defaultLine()
 		}
 	}
 }
@@ -315,7 +315,7 @@ func (b *buffer) index() {
 	}
 
 	if cursorVY >= b.ViewHeight()-1 {
-		b.lines = append(b.lines, b.blankLine())
+		b.lines = append(b.lines, b.defaultLine())
 		maxLines := b.GetMaxLines()
 		if len(b.lines) > maxLines {
 			copy(b.lines, b.lines[len(b.lines)-maxLines:])
@@ -565,7 +565,7 @@ func (b *buffer) GetVisibleLines() []line {
 
 func (b *buffer) clear() {
 	for i := 0; i < int(b.ViewHeight()); i++ {
-		b.lines = append(b.lines, b.blankLine())
+		b.lines = append(b.lines, b.defaultLine())
 	}
 	b.setPosition(0, 0)
 }
@@ -583,7 +583,7 @@ func (b *buffer) getViewLine(index int) *line {
 
 	if len(b.lines) < b.ViewHeight() {
 		for index >= len(b.lines) {
-			b.lines = append(b.lines, b.blankLine())
+			b.lines = append(b.lines, b.defaultLine())
 		}
 		return &b.lines[int(index)]
 	}
@@ -612,7 +612,7 @@ func (b *buffer) eraseLineToCursor() {
 	_, bg, _ := b.cursorAttr.Decompose()
 	for i := 0; i <= int(b.cursorPosition.Col); i++ {
 		if i < len(line.cells) {
-			line.cells[i].erase(bg)
+			line.cells[i] = b.defaultCell(false)
 		}
 	}
 }
@@ -633,17 +633,7 @@ func (b *buffer) eraseDisplay() {
 	for y := 0; y < b.ViewHeight(); y++ {
 		rawLine := b.convertViewLineToRawLine(y)
 		if rawLine < len(b.lines) {
-			cells := []cell{}
-			for x := 0; x < b.ViewWidth(); x++ {
-				cell := b.defaultCell(false)
-				cell.setStyle(*b.getCursorAttr())
-				cell.setRune(measuredRune{
-					rune:  ' ',
-					width: 1,
-				})
-				cells = append(cells, cell)
-			}
-			b.lines[rawLine].cells = cells
+			b.lines[rawLine] = b.defaultLine()
 		}
 	}
 }
@@ -698,7 +688,7 @@ func (b *buffer) eraseDisplayToCursor() {
 		if i >= len(line.cells) {
 			break
 		}
-		line.cells[i].erase(bg)
+		line.cells[i] = b.defaultCell(false)
 	}
 
 	cursorVY := b.convertRawLineToViewLine(b.cursorPosition.Line)
@@ -706,7 +696,7 @@ func (b *buffer) eraseDisplayToCursor() {
 	for i := 0; i < cursorVY; i++ {
 		rawLine := b.convertViewLineToRawLine(i)
 		if rawLine < len(b.lines) {
-			b.lines[int(rawLine)].cells = []cell{}
+			b.lines[rawLine] = b.defaultLine()
 		}
 	}
 }
@@ -742,6 +732,23 @@ func (b *buffer) defaultCell(applyEffects bool) cell {
 		attr = attr.Dim(false)
 	}
 	return cell{attr: attr}
+}
+
+// defaultLine returns a line of empty cells with default styling
+func (b *buffer) defaultLine() line {
+	cells := []cell{}
+	for x := 0; x < b.ViewWidth(); x++ {
+		cell := b.defaultCell(false)
+		cell.setRune(measuredRune{
+			rune:  ' ',
+			width: 1,
+		})
+		cells = append(cells, cell)
+	}
+	return line{
+		wrapped: false,
+		cells:   cells,
+	}
 }
 
 func (b *buffer) IsNewLineMode() bool {
@@ -826,15 +833,22 @@ func (b *buffer) ScrollDown(lines int) {
 	}
 }
 
+// blankCell returns an empty cells with the current cursor style
+func (b *buffer) blankCell() cell {
+	cell := b.defaultCell(false)
+	cell.setStyle(*b.getCursorAttr())
+	cell.setRune(measuredRune{
+		rune:  ' ',
+		width: 1,
+	})
+	return cell
+}
+
+// blankLine returns a line of empty cells with the current cursor style
 func (b *buffer) blankLine() line {
 	cells := []cell{}
 	for x := 0; x < b.ViewWidth(); x++ {
-		cell := b.defaultCell(false)
-		cell.setStyle(*b.getCursorAttr())
-		cell.setRune(measuredRune{
-			rune:  ' ',
-			width: 1,
-		})
+		cell := b.blankCell()
 		cells = append(cells, cell)
 	}
 	return line{
