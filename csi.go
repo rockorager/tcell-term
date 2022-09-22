@@ -680,8 +680,10 @@ func (t *Terminal) csiEraseInDisplayHandler(params []string) (renderRequired boo
 
 	switch n {
 	case "0", "":
+		// From cursor to end of screen
 		t.getActiveBuffer().eraseDisplayFromCursor()
 	case "1":
+		// From beginning of screen to cursor
 		t.getActiveBuffer().eraseDisplayToCursor()
 	case "2", "3":
 		t.getActiveBuffer().eraseDisplay()
@@ -701,7 +703,7 @@ func (t *Terminal) csiEraseInLineHandler(params []string) (renderRequired bool) 
 	}
 
 	switch n {
-	case "0", "": // erase adter cursor
+	case "0", "": // erase after cursor
 		t.getActiveBuffer().eraseLineFromCursor()
 	case "1": // erase to cursor inclusive
 		t.getActiveBuffer().eraseLineToCursor()
