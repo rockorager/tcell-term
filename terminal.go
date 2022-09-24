@@ -120,7 +120,7 @@ func (t *Terminal) run(cmd *exec.Cmd, attr *syscall.SysProcAttr) error {
 	tmr := time.NewTicker(time.Duration(t.interval) * time.Millisecond)
 	go func() {
 		for range tmr.C {
-			if t.close {
+			if t.shouldClose() {
 				if cmd != nil && cmd.Process != nil {
 					cmd.Process.Kill()
 					cmd.Wait()
@@ -176,7 +176,15 @@ func (t *Terminal) run(cmd *exec.Cmd, attr *syscall.SysProcAttr) error {
 // Close ends the process and cleans up the terminal. An EventClosed event will
 // be emitted when the terminal has closed
 func (t *Terminal) Close() {
+	t.mu.Lock()
 	t.close = true
+	t.mu.Unlock()
+}
+
+func (t *Terminal) shouldClose() bool {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	return t.close
 }
 
 // SetView sets the view for the terminal to draw to. This must be set before
@@ -390,6 +398,8 @@ func (t *Terminal) setTitle(title string) {
 
 // ShouldRedraw returns whether any cell in the cell buffer is dirty
 func (t *Terminal) ShouldRedraw() bool {
+	t.mu.Lock()
+	defer t.mu.Unlock()
 	return t.redraw
 }
 
