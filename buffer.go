@@ -1,9 +1,6 @@
 package tcellterm
 
 import (
-	"image"
-	"sync"
-
 	"github.com/gdamore/tcell/v2"
 )
 
@@ -28,25 +25,7 @@ type buffer struct {
 	charsets              []*map[rune]rune // array of 2 charsets, nil means ASCII (no conversion)
 	currentCharset        int              // active charset index in charsets array, valid values are 0 or 1
 	modes                 modes
-	selectionStart        *position
-	selectionEnd          *position
-	highlightStart        *position
-	highlightEnd          *position
-	highlightAnnotation   *annotation
 	sixels                []sixel
-	selectionMu           sync.Mutex
-}
-
-type annotation struct {
-	Image  image.Image
-	Text   string
-	Width  float64 // Width in cells
-	Height float64 // Height in cells
-}
-
-type selection struct {
-	Start position
-	End   position
 }
 
 type position struct {
