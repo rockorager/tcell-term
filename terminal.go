@@ -155,9 +155,7 @@ func (t *Terminal) run(cmd *exec.Cmd, attr *syscall.SysProcAttr) error {
 	}
 	defer t.pty.Close()
 
-	t.mu.Lock()
 	err = t.setSize(h, w)
-	t.mu.Unlock()
 	if err != nil {
 		return err
 	}
@@ -410,6 +408,8 @@ func (t *Terminal) SetRedraw(b bool) {
 }
 
 func (t *Terminal) setSize(rows, cols int) error {
+	t.mu.Lock()
+	defer t.mu.Unlock()
 	if t.pty == nil {
 		return fmt.Errorf("terminal is not running")
 	}
