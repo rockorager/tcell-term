@@ -142,6 +142,7 @@ func (t *Terminal) run(cmd *exec.Cmd, attr *syscall.SysProcAttr) error {
 		Cols: uint16(w),
 		Rows: uint16(h),
 	}
+	t.mu.Lock()
 	t.pty, err = pty.StartWithAttrs(
 		cmd,
 		&winsize,
@@ -150,6 +151,7 @@ func (t *Terminal) run(cmd *exec.Cmd, attr *syscall.SysProcAttr) error {
 			Setctty: true,
 			Ctty:    1,
 		})
+	t.mu.Unlock()
 	if err != nil {
 		return err
 	}
