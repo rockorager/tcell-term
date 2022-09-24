@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"sync"
 	"syscall"
 	"time"
 
@@ -41,6 +42,7 @@ type Terminal struct {
 	recorder     *os.File
 	redraw       bool
 	title        string
+	mu           sync.Mutex
 }
 
 func New(opts ...option) *Terminal {
@@ -153,7 +155,10 @@ func (t *Terminal) run(cmd *exec.Cmd, attr *syscall.SysProcAttr) error {
 	}
 	defer t.pty.Close()
 
-	if err := t.setSize(h, w); err != nil {
+	t.mu.Lock()
+	err = t.setSize(h, w)
+	t.mu.Unlock()
+	if err != nil {
 		return err
 	}
 	// TODO This is most likely not needed
@@ -248,6 +253,7 @@ func (t *Terminal) Draw() {
 	if t.view == nil {
 		return
 	}
+	t.mu.Lock()
 	t.SetRedraw(false)
 	buf := t.getActiveBuffer()
 	w, h := t.view.Size()
@@ -277,6 +283,7 @@ func (t *Terminal) Draw() {
 		// string terminator(ST)
 		os.Stdout.Write([]byte{0x1b, 0x5c})
 	}
+	t.mu.Unlock()
 }
 
 // GetCursor returns if the cursor is visible, it's x and y position, and it's
@@ -415,6 +422,7 @@ func (t *Terminal) process() {
 		if !ok {
 			return
 		}
+		t.mu.Lock()
 		if mr.rune == 0x1b { // ANSI escape char, which means this is a sequence
 			if t.handleANSI(t.processChan) {
 				t.SetRedraw(true)
@@ -422,6 +430,7 @@ func (t *Terminal) process() {
 		} else if t.processRunes(mr) { // otherwise it's just an individual rune we need to process
 			t.SetRedraw(true)
 		}
+		t.mu.Unlock()
 	}
 }
 
