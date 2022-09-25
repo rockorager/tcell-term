@@ -24,7 +24,8 @@ type model struct {
 	titleView views.View
 }
 
-func (m *model) HandleEvent(ev tcell.Event) bool {
+// Update is the main event handler. It should only be called by the main thread
+func (m *model) Update(ev tcell.Event) bool {
 	switch ev := ev.(type) {
 	case *tcell.EventKey:
 		switch ev.Key() {
@@ -80,6 +81,14 @@ func (m *model) HandleEvent(ev tcell.Event) bool {
 	return false
 }
 
+// HandleEvent is used to handle events from underlying widgets. Any events
+// which redraw must be executed in the main goroutine by posting the event back
+// to tcell
+func (m *model) HandleEvent(ev tcell.Event) bool {
+	m.s.PostEvent(ev)
+	return false
+}
+
 func main() {
 	var err error
 	f, _ := os.Create(".log")
@@ -128,7 +137,7 @@ func main() {
 		if ev == nil {
 			break
 		}
-		m.HandleEvent(ev)
+		m.Update(ev)
 	}
 	os.Stdout.Write(logbuf.Bytes())
 }
