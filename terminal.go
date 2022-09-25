@@ -116,7 +116,9 @@ func (t *Terminal) run(cmd *exec.Cmd, attr *syscall.SysProcAttr) error {
 	if cmd == nil {
 		return fmt.Errorf("no command to run")
 	}
+	t.mu.Lock()
 	w, h := t.view.Size()
+	t.mu.Unlock()
 	tmr := time.NewTicker(time.Duration(t.interval) * time.Millisecond)
 	go func() {
 		for range tmr.C {
@@ -200,6 +202,8 @@ func (t *Terminal) Size() (int, int) {
 	if t.view == nil {
 		return 0, 0
 	}
+	t.mu.Lock()
+	defer t.mu.Unlock()
 	return t.view.Size()
 }
 
@@ -305,7 +309,9 @@ func (t *Terminal) Resize() {
 	if t.view == nil {
 		return
 	}
+	t.mu.Lock()
 	w, h := t.view.Size()
+	t.mu.Unlock()
 	t.setSize(h, w)
 	t.Draw()
 }
