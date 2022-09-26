@@ -127,11 +127,10 @@ func main() {
 	m.term.SetView(m.termView)
 
 	cmd := exec.Command(os.Getenv("SHELL"))
-	go func() {
-		if err := m.term.Run(cmd); err != nil {
-			log.Println(err)
-		}
-	}()
+	err = m.term.Start(cmd)
+	if err != nil {
+		panic(err)
+	}
 	for {
 		ev := m.s.PollEvent()
 		if ev == nil {

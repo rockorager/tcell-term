@@ -31,6 +31,7 @@ type Terminal struct {
 	interval int
 	close    bool
 	views.WidgetWatchers
+	cmd          *exec.Cmd
 	pty          *os.File
 	processChan  chan measuredRune
 	buffers      []*buffer
@@ -102,20 +103,56 @@ func WithRecorder(p string) option {
 	}
 }
 
-// Run starts the terminal with the specified command
+// Run starts the terminal with the specified command and waits for the terminal
+// to exit, either by calling Close or when the command exits
 func (t *Terminal) Run(cmd *exec.Cmd) error {
-	return t.run(cmd, &syscall.SysProcAttr{})
+	err := t.start(cmd, &syscall.SysProcAttr{})
+	if err != nil {
+		return err
+	}
+	err = cmd.Wait()
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // Run starts the terminal with the specified command and custom attributes
 func (t *Terminal) RunWithAttrs(cmd *exec.Cmd, attr *syscall.SysProcAttr) error {
-	return t.run(cmd, attr)
+	err := t.start(cmd, attr)
+	if err != nil {
+		return err
+	}
+	err = cmd.Wait()
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
-func (t *Terminal) run(cmd *exec.Cmd, attr *syscall.SysProcAttr) error {
+// Start starts the terminal with the specified command. Start returns when the
+// command has been successfully started.
+func (t *Terminal) Start(cmd *exec.Cmd) error {
+	err := t.start(cmd, &syscall.SysProcAttr{})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (t *Terminal) StartWithAttrs(cmd *exec.Cmd, attr *syscall.SysProcAttr) error {
+	err := t.start(cmd, attr)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (t *Terminal) start(cmd *exec.Cmd, attr *syscall.SysProcAttr) error {
 	if cmd == nil {
 		return fmt.Errorf("no command to run")
 	}
+	t.cmd = cmd
 	t.mu.Lock()
 	w, h := t.view.Size()
 	t.mu.Unlock()
@@ -123,10 +160,6 @@ func (t *Terminal) run(cmd *exec.Cmd, attr *syscall.SysProcAttr) error {
 	go func() {
 		for range tmr.C {
 			if t.shouldClose() {
-				if cmd != nil && cmd.Process != nil {
-					cmd.Process.Kill()
-					cmd.Wait()
-				}
 				t.PostEvent(&EventClosed{
 					EventTerminal: newEventTerminal(t),
 				})
@@ -157,7 +190,6 @@ func (t *Terminal) run(cmd *exec.Cmd, attr *syscall.SysProcAttr) error {
 	if err != nil {
 		return err
 	}
-	defer t.pty.Close()
 
 	err = t.setSize(h, w)
 	if err != nil {
@@ -170,8 +202,10 @@ func (t *Terminal) run(cmd *exec.Cmd, attr *syscall.SysProcAttr) error {
 	// 	defer term.Restore(fd, oldState)
 	// }
 	go t.process()
-	_, _ = io.Copy(t, t.pty)
-	t.Close()
+	go func() {
+		io.Copy(t, t.pty)
+		t.Close()
+	}()
 	return nil
 }
 
@@ -180,6 +214,11 @@ func (t *Terminal) run(cmd *exec.Cmd, attr *syscall.SysProcAttr) error {
 func (t *Terminal) Close() {
 	t.mu.Lock()
 	t.close = true
+	if t.cmd != nil && t.cmd.Process != nil {
+		t.cmd.Process.Kill()
+		t.cmd.Wait()
+	}
+	t.pty.Close()
 	t.mu.Unlock()
 }
 
