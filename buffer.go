@@ -579,9 +579,9 @@ func (b *buffer) eraseLine() {
 
 	for i := 0; i < b.viewWidth; i++ {
 		if i >= len(line.cells) {
-			line.cells = append(line.cells, b.defaultCell(false))
+			line.cells = append(line.cells, b.blankCell())
 		} else {
-			line.cells[i] = b.defaultCell(false)
+			line.cells[i] = b.blankCell()
 		}
 	}
 }
@@ -590,7 +590,7 @@ func (b *buffer) eraseLineToCursor() {
 	line := b.getCurrentLine()
 	for i := 0; i <= b.cursorPosition.Col; i++ {
 		if i < len(line.cells) {
-			line.cells[i] = b.defaultCell(false)
+			line.cells[i] = b.blankCell()
 		}
 	}
 }
@@ -600,9 +600,9 @@ func (b *buffer) eraseLineFromCursor() {
 
 	for i := b.cursorPosition.Col; i < b.viewWidth; i++ {
 		if i >= len(line.cells) {
-			line.cells = append(line.cells, b.defaultCell(false))
+			line.cells = append(line.cells, b.blankCell())
 		} else {
-			line.cells[i] = b.defaultCell(false)
+			line.cells[i] = b.blankCell()
 		}
 	}
 }
@@ -611,7 +611,7 @@ func (b *buffer) eraseDisplay() {
 	for y := 0; y < b.ViewHeight(); y++ {
 		rawLine := b.convertViewLineToRawLine(y)
 		if rawLine < len(b.lines) {
-			b.lines[rawLine] = b.defaultLine()
+			b.lines[rawLine] = b.blankLine()
 		}
 	}
 }
