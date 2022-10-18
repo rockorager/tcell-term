@@ -15,6 +15,7 @@ import (
 	"github.com/creack/pty"
 	"github.com/gdamore/tcell/v2"
 	"github.com/gdamore/tcell/v2/views"
+	"github.com/mattn/go-runewidth"
 )
 
 const (
@@ -309,12 +310,20 @@ func (t *Terminal) Draw() {
 	buf := t.getActiveBuffer()
 	w, h := t.view.Size()
 	for viewY := 0; viewY < h; viewY++ {
-		for viewX := 0; viewX < w; viewX++ {
+		viewX := 0
+		for viewX < w {
 			cell := buf.getCell(viewX, viewY)
 			if cell == nil {
 				t.view.SetContent(viewX, viewY, ' ', nil, tcell.StyleDefault)
+				viewX = viewX + 1
 			} else {
 				t.view.SetContent(viewX, viewY, cell.rune().rune, nil, cell.style())
+				if cell.rune().width > 1 {
+					viewX = viewX + cell.rune().width
+				} else {
+					viewX = viewX + 1
+				}
+
 			}
 		}
 	}
@@ -498,10 +507,11 @@ func (t *Terminal) Write(data []byte) (n int, err error) {
 		t.recorder.Write(data)
 	}
 	for {
-		r, size, err := reader.ReadRune()
+		r, _, err := reader.ReadRune()
 		if err == io.EOF {
 			break
 		}
+		size := runewidth.RuneWidth(r)
 		t.processChan <- measuredRune{rune: r, width: size}
 	}
 	return len(data), nil

@@ -11,6 +11,7 @@ require (
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/mattn/go-runewidth v0.0.13
 	golang.org/x/sys v0.0.0-20220823224334-20c2bfdbfe24 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 )

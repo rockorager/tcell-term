@@ -342,7 +342,7 @@ func (b *buffer) write(runes ...measuredRune) {
 			}
 			line.cells[b.cursorPosition.Col].attr = b.cursorAttr
 			line.cells[b.cursorPosition.Col].setRune(r)
-			b.incrementCursorPosition()
+			b.incrementCursorPosition(r.width)
 			continue
 		}
 
@@ -375,15 +375,15 @@ func (b *buffer) write(runes ...measuredRune) {
 			cell.attr = b.cursorAttr
 		}
 
-		b.incrementCursorPosition()
+		b.incrementCursorPosition(r.width)
 	}
 }
 
-func (b *buffer) incrementCursorPosition() {
+func (b *buffer) incrementCursorPosition(w int) {
 	// we can increment one column past the end of the line.
 	// this is effectively the beginning of the next line, except when we \r etc.
 	if b.cursorColumn() < b.Width() {
-		b.cursorPosition.Col++
+		b.cursorPosition.Col += w
 	}
 }
 
