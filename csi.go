@@ -35,13 +35,11 @@ CSI:
 		unprocessed = strings.Split(param, ";")
 	}
 	for _, par := range unprocessed {
-		if par != "" {
-			par = strings.TrimLeft(par, "0")
-			if par == "" {
-				par = "0"
-			}
-			params = append(params, par)
+		par = strings.TrimLeft(par, "0")
+		if par == "" {
+			par = "0"
 		}
+		params = append(params, par)
 	}
 
 	return final, params, intermediate, raw
