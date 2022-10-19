@@ -599,6 +599,9 @@ func (b *buffer) eraseLineFromCursor() {
 	line := b.getCurrentLine()
 
 	for i := b.cursorPosition.Col; i < b.viewWidth; i++ {
+		if i < 0 {
+			continue
+		}
 		if i >= len(line.cells) {
 			line.cells = append(line.cells, b.blankCell())
 		} else {
