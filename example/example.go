@@ -121,8 +121,15 @@ func main() {
 	m.title.Watch(m)
 	m.title.SetView(m.titleView)
 
+	recorder, err := os.Create("recording.log")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%v\n", err)
+		os.Exit(1)
+	}
+	defer recorder.Close()
+
 	m.termView = views.NewViewPort(m.s, 0, 2, -1, -1)
-	m.term = tcellterm.New(tcellterm.WithRecorder("recording.log"))
+	m.term = tcellterm.New(tcellterm.WithWriter(recorder))
 	m.term.Watch(m)
 	m.term.SetView(m.termView)
 

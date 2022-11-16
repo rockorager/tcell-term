@@ -7,7 +7,6 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"path"
 	"sync"
 	"syscall"
 	"time"
@@ -41,7 +40,7 @@ type Terminal struct {
 	mouseDrgEvnt bool
 	mouseMtnEvnt bool
 	mouseBtnIn   tcell.ButtonMask
-	recorder     *os.File
+	writer       io.Writer
 	redraw       bool
 	title        string
 	mu           sync.Mutex
@@ -59,6 +58,7 @@ func New(opts ...option) *Terminal {
 		newBuffer(1, 1, 0xffff, fg, bg),
 	}
 	term.activeBuffer = term.buffers[0]
+	term.writer = term
 	for _, opt := range opts {
 		opt(term)
 	}
@@ -91,16 +91,12 @@ func WithPollInterval(interval int) option {
 	}
 }
 
-func WithRecorder(p string) option {
+// WithWriter adds an additional writer for the pty output
+func WithWriter(w io.Writer) option {
 	return func(t *Terminal) {
-		if !path.IsAbs(p) {
-			wd, err := os.Getwd()
-			if err != nil {
-				return
-			}
-			path.Join(wd, p)
+		if t.writer != nil {
+			t.writer = io.MultiWriter(w, t.writer)
 		}
-		t.recorder, _ = os.Create(p)
 	}
 }
 
@@ -204,7 +200,7 @@ func (t *Terminal) start(cmd *exec.Cmd, attr *syscall.SysProcAttr) error {
 	// }
 	go t.process()
 	go func() {
-		io.Copy(t, t.pty)
+		io.Copy(t.writer, t.pty)
 		t.Close()
 	}()
 	return nil
@@ -503,9 +499,6 @@ func (t *Terminal) process() {
 // Write takes data from StdOut of the child shell and processes it
 func (t *Terminal) Write(data []byte) (n int, err error) {
 	reader := bufio.NewReader(bytes.NewBuffer(data))
-	if t.recorder != nil {
-		t.recorder.Write(data)
-	}
 	for {
 		r, _, err := reader.ReadRune()
 		if err == io.EOF {
