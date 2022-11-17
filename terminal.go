@@ -5,11 +5,13 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"math/bits"
 	"os"
 	"os/exec"
 	"sync"
 	"syscall"
 	"time"
+	"unicode/utf8"
 
 	"github.com/creack/pty"
 	"github.com/gdamore/tcell/v2"
@@ -200,10 +202,64 @@ func (t *Terminal) start(cmd *exec.Cmd, attr *syscall.SysProcAttr) error {
 	// }
 	go t.process()
 	go func() {
-		io.Copy(t.writer, t.pty)
+		utf8Copy(t.writer, t.pty)
 		t.Close()
 	}()
 	return nil
+}
+
+// utf8Copy is an utf8 aware version of io.Copy. It attempts to not to split utf8
+// sequences between separate writes. This is not ideal as it may delay up to 3 bytes.
+func utf8Copy(dst io.Writer, src io.Reader) {
+	// buffer for copying. It also contains previous trailing bytes.
+	buf := make([]byte, 32*1024)
+	for {
+		// read after the trailing bytes
+		n, er := src.Read(buf[len(buf):cap(buf)])
+		if er != nil && er != io.EOF {
+			return
+		}
+
+		// current buffer
+		buf = buf[:n+len(buf)]
+
+		// remaining invalid bytes
+		rem := trailingUtf8(buf)
+		if rem >= 8 || n == 0 {
+			rem = 0
+		}
+
+		// write buf without remaining bytes
+		if _, ew := dst.Write(buf[:len(buf)-rem]); ew != nil {
+			return
+		}
+
+		if er == io.EOF {
+			return
+		}
+
+		// move remaining bytes to the start of the buffer
+		copy(buf, buf[len(buf)-rem:])
+		buf = buf[:rem]
+	}
+}
+
+// trailingUtf8 returns number of bytes of incomplete but possibly valid utf8
+// sequence at the end of p. If there is no such sequence, it returns 0.
+func trailingUtf8(p []byte) int {
+	if len(p) == 0 || p[len(p)-1] < utf8.RuneSelf {
+		return 0
+	}
+	for n := 1; n < utf8.UTFMax && n <= len(p); n++ {
+		b := p[len(p)-n]
+		if utf8.RuneStart(b) {
+			if bits.LeadingZeros8(^b) > n {
+				return n
+			}
+			return 0
+		}
+	}
+	return 0
 }
 
 // Close ends the process and cleans up the terminal. An EventClosed event will
