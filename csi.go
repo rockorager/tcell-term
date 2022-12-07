@@ -765,6 +765,10 @@ func (t *Terminal) sgrSequenceHandler(params []string) bool {
 				fg, err = colorFromAnsi(params[i+1 : i+3])
 				i += 2
 			} else if i+4 < len(params) && params[i+1] == "2" {
+				if i+5 < len(params) && params[i+2] == "0" {
+					// 38:2::r:g:b, ignore the <0> in ::
+					params = append(params[:i+2], params[i+3:]...)
+				}
 				fg, err = colorFromAnsi(params[i+1 : i+5])
 				i += 4
 			}
@@ -780,6 +784,10 @@ func (t *Terminal) sgrSequenceHandler(params []string) bool {
 				bg, err = colorFromAnsi(params[i+1 : i+3])
 				i += 2
 			} else if i+4 < len(params) && params[i+1] == "2" {
+				if i+5 < len(params) && params[i+2] == "0" {
+					// 48:2::r:g:b, ignore the <0> in ::
+					params = append(params[:i+2], params[i+3:]...)
+				}
 				bg, err = colorFromAnsi(params[i+1 : i+5])
 				i += 4
 			}
