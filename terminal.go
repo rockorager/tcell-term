@@ -155,8 +155,9 @@ func (t *Terminal) start(cmd *exec.Cmd, attr *syscall.SysProcAttr) error {
 	t.mu.Lock()
 	w, h := t.view.Size()
 	t.mu.Unlock()
-	tmr := time.NewTicker(time.Duration(t.interval) * time.Millisecond)
 	go func() {
+		tmr := time.NewTicker(time.Duration(t.interval) * time.Millisecond)
+		defer tmr.Stop()
 		for range tmr.C {
 			if t.shouldClose() {
 				t.PostEvent(&EventClosed{
