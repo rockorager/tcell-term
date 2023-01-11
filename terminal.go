@@ -272,6 +272,8 @@ func (t *Terminal) Close() {
 	if t.cmd != nil && t.cmd.Process != nil {
 		t.cmd.Process.Kill()
 		t.cmd.Wait()
+		t.cmd = nil
+		close(t.processChan)
 	}
 	t.pty.Close()
 	t.mu.Unlock()
