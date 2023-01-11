@@ -215,7 +215,7 @@ func (t *Terminal) start(cmd *exec.Cmd, attr *syscall.SysProcAttr) error {
 // sequences between separate writes. This is not ideal as it may delay up to 3 bytes.
 func utf8Copy(dst io.Writer, src io.Reader) {
 	// buffer for copying. It also contains previous trailing bytes.
-	buf := make([]byte, 32*1024)
+	buf := make([]byte, 0, 32*1024)
 	for {
 		// read after the trailing bytes
 		n, er := src.Read(buf[len(buf):cap(buf)])
