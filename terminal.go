@@ -29,7 +29,7 @@ type Terminal struct {
 	curY     int
 	curStyle tcell.CursorStyle
 	curVis   bool
-	view     views.View
+	grid     Grid
 	interval int
 	close    bool
 	views.WidgetWatchers
@@ -153,7 +153,7 @@ func (t *Terminal) start(cmd *exec.Cmd, attr *syscall.SysProcAttr) error {
 	}
 	t.cmd = cmd
 	t.mu.Lock()
-	w, h := t.view.Size()
+	w, h := t.grid.Size()
 	t.mu.Unlock()
 	go func() {
 		tmr := time.NewTicker(time.Duration(t.interval) * time.Millisecond)
@@ -289,19 +289,29 @@ func (t *Terminal) shouldClose() bool {
 // SetView sets the view for the terminal to draw to. This must be set before
 // calling Draw. Setting the view also calls Resize(). Any change to the
 // underlying view requires the host application to call Resize again.
+//
+// This method exists to satisfy the Widget interface from tcell/views.
+// A trimmed-down interface can be used with SetGrid.
 func (t *Terminal) SetView(view views.View) {
-	t.view = view
+	t.grid = view
+	t.Resize()
+}
+
+// SetGrid sets the surface for the terminal to draw to. It is functionally
+// identical to SetView, but accepts a smaller interface.
+func (t *Terminal) SetGrid(s Grid) {
+	t.grid = s
 	t.Resize()
 }
 
 // Size reports the current view size in rows, cols
 func (t *Terminal) Size() (int, int) {
-	if t.view == nil {
+	if t.grid == nil {
 		return 0, 0
 	}
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	return t.view.Size()
+	return t.grid.Size()
 }
 
 // HandleEvent handles tcell Events from the parent application
@@ -359,22 +369,22 @@ func (t *Terminal) HandleEvent(e tcell.Event) bool {
 
 // Draw draws the current cell buffer to the view.
 func (t *Terminal) Draw() {
-	if t.view == nil {
+	if t.grid == nil {
 		return
 	}
 	t.mu.Lock()
 	t.SetRedraw(false)
 	buf := t.getActiveBuffer()
-	w, h := t.view.Size()
+	w, h := t.grid.Size()
 	for viewY := 0; viewY < h; viewY++ {
 		viewX := 0
 		for viewX < w {
 			cell := buf.getCell(viewX, viewY)
 			if cell == nil {
-				t.view.SetContent(viewX, viewY, ' ', nil, tcell.StyleDefault)
+				t.grid.SetContent(viewX, viewY, ' ', nil, tcell.StyleDefault)
 				viewX = viewX + 1
 			} else {
-				t.view.SetContent(viewX, viewY, cell.rune().rune, nil, cell.style())
+				t.grid.SetContent(viewX, viewY, cell.rune().rune, nil, cell.style())
 				if cell.rune().width > 1 {
 					viewX = viewX + cell.rune().width
 				} else {
@@ -411,11 +421,11 @@ func (t *Terminal) GetCursor() (bool, int, int, tcell.CursorStyle) {
 
 // Resize resizes the terminal to the dimensions of the terminals view
 func (t *Terminal) Resize() {
-	if t.view == nil {
+	if t.grid == nil {
 		return
 	}
 	t.mu.Lock()
-	w, h := t.view.Size()
+	w, h := t.grid.Size()
 	t.mu.Unlock()
 	t.setSize(h, w)
 	t.Draw()
