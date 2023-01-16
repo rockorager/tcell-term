@@ -523,6 +523,10 @@ func (b *buffer) setPosition(col int, line int) {
 		useCol = b.ViewWidth() - 1
 	}
 
+	if useCol < 0 {
+		useCol = 0
+	}
+
 	l := b.convertViewLineToRawLine(useLine)
 	b.cursorPosition.Col = useCol
 	b.cursorPosition.Line = l
