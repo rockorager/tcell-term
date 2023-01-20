@@ -36,6 +36,7 @@ type Terminal struct {
 	cmd          *exec.Cmd
 	pty          *os.File
 	processChan  chan measuredRune
+	done         chan struct{}
 	buffers      []*buffer
 	activeBuffer *buffer
 	mouseBtnEvnt bool
@@ -51,6 +52,7 @@ type Terminal struct {
 func New(opts ...option) *Terminal {
 	term := &Terminal{
 		processChan: make(chan measuredRune, 0xffff),
+		done:        make(chan struct{}),
 		interval:    8,
 	}
 	fg := defaultForeground()
@@ -274,7 +276,7 @@ func (t *Terminal) Close() {
 		t.cmd.Process.Kill()
 		t.cmd.Wait()
 		t.cmd = nil
-		close(t.processChan)
+		close(t.done)
 	}
 	t.pty.Close()
 	t.mu.Unlock()
@@ -576,7 +578,11 @@ func (t *Terminal) Write(data []byte) (n int, err error) {
 			break
 		}
 		size := runewidth.RuneWidth(r)
-		t.processChan <- measuredRune{rune: r, width: size}
+		select {
+		case <-t.done:
+			return len(data), nil
+		case t.processChan <- measuredRune{rune: r, width: size}:
+		}
 	}
 	return len(data), nil
 }
