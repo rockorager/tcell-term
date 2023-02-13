@@ -443,6 +443,7 @@ func (t *Terminal) processRunes(runes ...measuredRune) (renderRequired bool) {
 		case 0x05: // enq
 			continue
 		case 0x07: // bell
+			t.PostEvent(EventBell{})
 			// DING DING DING
 			continue
 		case 0x8: // backspace

@@ -56,3 +56,8 @@ type EventMouseMode struct {
 func (ev *EventMouseMode) Flags() []tcell.MouseFlags {
 	return ev.modes
 }
+
+// BEL
+type EventBell struct {
+	*EventTerminal
+}
