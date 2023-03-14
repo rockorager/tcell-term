@@ -554,19 +554,23 @@ func (t *Terminal) setSize(rows, cols int) error {
 
 func (t *Terminal) process() {
 	for {
-		mr, ok := <-t.processChan
-		if !ok {
+		select {
+		case <-t.done:
 			return
-		}
-		t.mu.Lock()
-		if mr.rune == 0x1b { // ANSI escape char, which means this is a sequence
-			if t.handleANSI(t.processChan) {
+		case mr, ok := <-t.processChan:
+			if !ok {
+				return
+			}
+			t.mu.Lock()
+			if mr.rune == 0x1b { // ANSI escape char, which means this is a sequence
+				if t.handleANSI(t.processChan) {
+					t.SetRedraw(true)
+				}
+			} else if t.processRunes(mr) { // otherwise it's just an individual rune we need to process
 				t.SetRedraw(true)
 			}
-		} else if t.processRunes(mr) { // otherwise it's just an individual rune we need to process
-			t.SetRedraw(true)
+			t.mu.Unlock()
 		}
-		t.mu.Unlock()
 	}
 }
 
