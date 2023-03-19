@@ -1,27 +1,28 @@
 package tcellterm
 
 import (
-	"fmt"
+	"strings"
 )
 
 func (t *Terminal) handleOSC(readChan chan measuredRune) (renderRequired bool) {
 	params := []string{}
-	param := ""
+	param := strings.Builder{}
 
 READ:
 	for {
 		select {
 		case b := <-readChan:
 			if t.isOSCTerminator(b.rune) {
-				params = append(params, param)
+				params = append(params, param.String())
+				param.Reset()
 				break READ
 			}
 			if b.rune == ';' {
-				params = append(params, param)
-				param = ""
+				params = append(params, param.String())
+				param.Reset()
 				continue
 			}
-			param = fmt.Sprintf("%s%c", param, b.rune)
+			param.WriteRune(b.rune)
 		default:
 			return false
 		}
