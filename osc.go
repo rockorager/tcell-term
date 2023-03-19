@@ -45,7 +45,8 @@ READ:
 		t.setTitle(pT)
 	case "8":
 		attr := t.getActiveBuffer().getCursorAttr()
-		*attr = attr.Url(pT)
+		uri := parseOSC8(params)
+		*attr = attr.Url(uri)
 	case "10": // get/set foreground colour
 		if len(pS) > 1 {
 			if pS[1] == "?" {
@@ -69,4 +70,13 @@ func (t *Terminal) isOSCTerminator(r rune) bool {
 		}
 	}
 	return false
+}
+
+// parseOSC8 parses the params of an OSC8 string and returns the URI
+func parseOSC8(params []string) string {
+	if len(params) > 3 {
+		// URI has a semicolon in it, we need to join it back together
+		return strings.Join(params[2:], ";")
+	}
+	return params[len(params)-1]
 }
