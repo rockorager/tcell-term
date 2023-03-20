@@ -14,9 +14,9 @@ func (t *Terminal) handleANSI(readChan chan measuredRune) (renderRequired bool) 
 	case ')':
 		return t.handleSCS1(readChan) // select character set into G1
 	case '*':
-		return swallowHandler(1)(readChan) // character set bullshit
+		return swallowHandler(1)(readChan) // character set
 	case '+':
-		return swallowHandler(1)(readChan) // character set bullshit
+		return swallowHandler(1)(readChan) // character set
 	case '>':
 		return swallowHandler(0)(readChan) // numeric char selection
 	case '=':
