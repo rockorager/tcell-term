@@ -336,19 +336,7 @@ func (vt *VT) HandleEvent(e tcell.Event) bool {
 		if e.Key() == tcell.KeyEnter {
 			// vt.step <- true
 		}
-		var keycode string
-		switch {
-		case e.Modifiers()&tcell.ModAlt != 0:
-			keycode = getAltCombinationKeyCode(e)
-		case e.Modifiers()&tcell.ModCtrl != 0:
-			keycode = getCtrlCombinationKeyCode(e)
-		default:
-			keycode = getKeyCode(e)
-		}
-		vt.pty.Write([]byte(keycode))
-		return true
-	case *tcell.EventResize:
-		// vt.Resize()
+		vt.pty.WriteString(keyCode(e))
 		return true
 	case *tcell.EventPaste:
 		if e.Start() {
