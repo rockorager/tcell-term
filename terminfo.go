@@ -178,10 +178,10 @@ var info = &terminfo.Terminfo{
 	KeyAltShfEnd:            "\x1b[1;4F",
 	KeyMetaShfHome:          "",
 	KeyMetaShfEnd:           "",
-	EnablePaste:             "\x1b[?2004h", // bracketed paste mode
-	DisablePaste:            "\x1b[?2004l",
-	PasteStart:              "\x1b[200~",
-	PasteEnd:                "\x1b[201~",
+	EnablePaste:             "\x1b[?2004h", // BE
+	DisablePaste:            "\x1b[?2004l", // BD
+	PasteStart:              "\x1b[200~", // PS
+	PasteEnd:                "\x1b[201~", // PE
 	Modifiers:               1,
 	InsertChar:              "\x1b[@", // string to insert a character (ich1)
 	AutoMargin:              true,     // true if writing to last cell in line advances
