@@ -53,19 +53,21 @@ func (vt *VT) sgr(params []int) {
 					return
 				}
 				color = tcell.PaletteColor(params[i+2])
-			case 5:
+				i += 2
+			case 5, 10:
 				if params[i+1] != 2 {
 					return
 				}
 				color = tcell.NewRGBColor(int32(params[i+2]), int32(params[i+3]), int32(params[i+4]))
-			case 6:
+				i += 4
+			case 6, 12:
 				if params[i+1] != 2 {
 					return
 				}
 				color = tcell.NewRGBColor(int32(params[i+3]), int32(params[i+4]), int32(params[i+5]))
+				i += 5
 			}
 			vt.cursor.attrs = vt.cursor.attrs.Foreground(color)
-			return
 		case 39:
 			vt.cursor.attrs = vt.cursor.attrs.Foreground(tcell.ColorDefault)
 		case 40, 41, 42, 43, 44, 45, 46, 47:
@@ -79,19 +81,21 @@ func (vt *VT) sgr(params []int) {
 					return
 				}
 				color = tcell.PaletteColor(params[i+2])
-			case 5:
+				i += 2
+			case 5, 10:
 				if params[i+1] != 2 {
 					return
 				}
 				color = tcell.NewRGBColor(int32(params[i+2]), int32(params[i+3]), int32(params[i+4]))
-			case 6:
-				if params[i+2] != 2 {
+				i += 4
+			case 6, 12:
+				if params[i+1] != 2 {
 					return
 				}
 				color = tcell.NewRGBColor(int32(params[i+3]), int32(params[i+4]), int32(params[i+5]))
+				i += 5
 			}
 			vt.cursor.attrs = vt.cursor.attrs.Background(color)
-			return
 		case 49:
 			vt.cursor.attrs = vt.cursor.attrs.Background(tcell.ColorDefault)
 		case 90, 91, 92, 93, 94, 95, 96, 97:

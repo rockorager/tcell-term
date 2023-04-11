@@ -50,11 +50,27 @@ func TestSGR(t *testing.T) {
 			},
 		},
 		{
+			name:  "RGB fg and bg",
+			input: []int{38, 2, 1, 2, 3, 48, 2, 1, 2, 3},
+			expected: func() tcell.Style {
+				color := tcell.NewRGBColor(1, 2, 3)
+				return tcell.StyleDefault.Foreground(color).Background(color)
+			},
+		},
+		{
 			name:  "RGB with colorspace",
 			input: []int{38, 2, 0, 1, 2, 3},
 			expected: func() tcell.Style {
 				color := tcell.NewRGBColor(1, 2, 3)
 				return tcell.StyleDefault.Foreground(color)
+			},
+		},
+		{
+			name:  "RGB fg and bg with colorspace",
+			input: []int{38, 2, 0, 1, 2, 3, 48, 2, 0, 1, 2, 3},
+			expected: func() tcell.Style {
+				color := tcell.NewRGBColor(1, 2, 3)
+				return tcell.StyleDefault.Foreground(color).Background(color)
 			},
 		},
 		{
