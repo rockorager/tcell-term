@@ -1,12 +1,6 @@
 package tcellterm
 
-var charSets = map[rune]*map[rune]rune{
-	'0': &decSpecGraphics,
-	'B': nil, // ASCII
-	// @todo 1,2,A
-}
-
-var decSpecGraphics = map[rune]rune{
+var decSpecial = map[rune]rune{
 	0x5f: 0x00A0, // NO-BREAK SPACE
 	0x60: 0x25C6, // BLACK DIAMOND
 	0x61: 0x2592, // MEDIUM SHADE
@@ -39,25 +33,4 @@ var decSpecGraphics = map[rune]rune{
 	0x7c: 0x2260, // NOT EQUAL TO
 	0x7d: 0x00A3, // POUND SIGN
 	0x7e: 0x00B7, // MIDDLE DOT
-}
-
-func (t *Terminal) handleSCS0(pty chan measuredRune) bool {
-	return t.scsHandler(pty, 0)
-}
-
-func (t *Terminal) handleSCS1(pty chan measuredRune) bool {
-	return t.scsHandler(pty, 1)
-}
-
-func (t *Terminal) scsHandler(pty chan measuredRune, which int) bool {
-	b := <-pty
-
-	cs, ok := charSets[b.rune]
-	if ok {
-		t.activeBuffer.charsets[which] = cs
-		return false
-	}
-
-	t.activeBuffer.charsets[which] = nil
-	return false
 }

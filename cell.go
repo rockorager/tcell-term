@@ -1,36 +1,29 @@
 package tcellterm
 
-import (
-	"github.com/gdamore/tcell/v2"
-)
-
-type measuredRune struct {
-	rune  rune
-	width int
-}
+import "github.com/gdamore/tcell/v2"
 
 type cell struct {
-	r     measuredRune
-	attr  tcell.Style
+	content rune
+	attrs   tcell.Style
 }
 
-func (c *cell) rune() measuredRune {
-	return c.r
+func (c *cell) rune() rune {
+	if c.content == rune(0) {
+		return ' '
+	}
+	return c.content
 }
 
-func (c *cell) style() tcell.Style {
-	return c.attr
+// Erasing removes characters from the screen without affecting other characters
+// on the screen. Erased characters are lost. The cursor position does not
+// change when erasing characters or lines. Erasing a character also erases any
+// character attribute of the character and applies the passed style
+func (c *cell) erase(s tcell.Style) {
+	c.content = ' '
+	c.attrs = s
 }
 
-func (c *cell) erase(bgColour tcell.Color) {
-	c.setRune(measuredRune{rune: 0})
-	c.attr = c.attr.Background(bgColour)
-}
-
-func (c *cell) setRune(r measuredRune) {
-	c.r = r
-}
-
-func (c *cell) setStyle(s tcell.Style) {
-	c.attr = s
+// selectiveErase removes the cell content, but keeps the attributes
+func (c *cell) selectiveErase() {
+	c.content = ' '
 }

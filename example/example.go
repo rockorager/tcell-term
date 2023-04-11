@@ -4,10 +4,7 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
-	"io"
-	"log"
 	"os"
 	"os/exec"
 
@@ -17,7 +14,7 @@ import (
 )
 
 type model struct {
-	term      *tcellterm.Terminal
+	term      *tcellterm.VT
 	s         tcell.Screen
 	termView  views.View
 	title     *views.TextBar
@@ -25,7 +22,7 @@ type model struct {
 }
 
 // Update is the main event handler. It should only be called by the main thread
-func (m *model) Update(ev tcell.Event) bool {
+func (m *model) Update(ev tcell.Event) {
 	switch ev := ev.(type) {
 	case *tcell.EventKey:
 		switch ev.Key() {
@@ -33,70 +30,70 @@ func (m *model) Update(ev tcell.Event) bool {
 			m.term.Close()
 			m.s.Clear()
 			m.s.Fini()
-			return true
+			return
 		}
 		if m.term != nil {
-			return m.term.HandleEvent(ev)
+			m.term.HandleEvent(ev)
 		}
+		m.term.Draw()
+		m.s.Show()
 	case *tcell.EventResize:
 		if m.term != nil {
 			m.termView.Resize(0, 2, -1, -1)
-			m.term.Resize()
+			m.term.Resize(m.termView.Size())
 		}
 		m.titleView.Resize(0, 0, -1, 2)
 		m.title.Resize()
+		m.title.Draw()
+		m.term.Draw()
 		m.s.Sync()
-		return true
-	case *views.EventWidgetContent:
+		return
+	case *tcellterm.EventRedraw:
 		m.term.Draw()
 		m.title.Draw()
 
-		vis, x, y, style := m.term.GetCursor()
-		if vis {
-			m.s.ShowCursor(x, y+2)
-			m.s.SetCursorStyle(style)
-		} else {
-			m.s.HideCursor()
-		}
+		// vis, x, y, style := m.vt.GetCursor()
+		// if vis {
+		// 	m.s.ShowCursor(x, y+2)
+		// 	m.s.SetCursorStyle(style)
+		// } else {
+		// 	m.s.HideCursor()
+		// }
+		row, col, style, _ := m.term.Cursor()
+		m.s.SetCursorStyle(style)
+		m.s.ShowCursor(col, row+2)
 		m.s.Show()
-		return true
+		return
 	case *tcellterm.EventClosed:
 		m.s.Clear()
 		m.s.Fini()
-		return true
+		return
 	case *tcell.EventPaste:
-		return m.term.HandleEvent(ev)
+		// return m.term.HandleEvent(ev)
 	case *tcell.EventMouse:
 		// Translate the coordinates to our global coordinates (y-2)
-		x, y := ev.Position()
-		if y-2 < 0 {
-			// Event is outside our view
-			return false
-		}
-		e := tcell.NewEventMouse(x, y-2, ev.Buttons(), ev.Modifiers())
-		return m.term.HandleEvent(e)
+		// x, y := ev.Position()
+		// if y-2 < 0 {
+		// 	// Event is outside our view
+		// 	return false
+		// }
+		// e := tcell.NewEventMouse(x, y-2, ev.Buttons(), ev.Modifiers())
+		// return m.term.HandleEvent(e)
 	case *tcellterm.EventMouseMode:
 		m.s.EnableMouse(ev.Flags()...)
 	}
-	return false
+	return
 }
 
 // HandleEvent is used to handle events from underlying widgets. Any events
 // which redraw must be executed in the main goroutine by posting the event back
 // to tcell
-func (m *model) HandleEvent(ev tcell.Event) bool {
+func (m *model) HandleEvent(ev tcell.Event) {
 	m.s.PostEvent(ev)
-	return false
 }
 
 func main() {
 	var err error
-	f, _ := os.Create(".log")
-	defer f.Close()
-	logbuf := bytes.NewBuffer(nil)
-	log.SetOutput(io.MultiWriter(f, logbuf))
-	log.SetFlags(log.LstdFlags | log.Lshortfile)
-
 	m := &model{}
 	m.s, err = tcell.NewScreen()
 	if err != nil {
@@ -118,7 +115,6 @@ func main() {
 	)
 
 	m.titleView = views.NewViewPort(m.s, 0, 0, -1, 2)
-	m.title.Watch(m)
 	m.title.SetView(m.titleView)
 
 	recorder, err := os.Create("recording.log")
@@ -129,9 +125,11 @@ func main() {
 	defer recorder.Close()
 
 	m.termView = views.NewViewPort(m.s, 0, 2, -1, -1)
-	m.term = tcellterm.New(tcellterm.WithWriter(recorder))
-	m.term.Watch(m)
-	m.term.SetView(m.termView)
+	// m.term = tcellterm.New(tcellterm.WithWriter(recorder))
+	// m.term.Watch(m)
+	m.term = tcellterm.New()
+	m.term.SetSurface(m.termView)
+	m.term.Attach(m.HandleEvent)
 
 	cmd := exec.Command(os.Getenv("SHELL"))
 	err = m.term.Start(cmd)
@@ -145,5 +143,4 @@ func main() {
 		}
 		m.Update(ev)
 	}
-	os.Stdout.Write(logbuf.Bytes())
 }

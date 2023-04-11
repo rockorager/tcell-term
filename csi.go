@@ -1,858 +1,570 @@
 package tcellterm
 
-import (
-	"fmt"
-	"strconv"
-	"strings"
+import "github.com/gdamore/tcell/v2"
 
-	"github.com/gdamore/tcell/v2"
-)
-
-func parseCSI(readChan chan measuredRune) (final rune, params []string, intermediate []rune, raw []rune) {
-	var b measuredRune
-
-	param := ""
-	intermediate = []rune{}
-CSI:
-	for {
-		b = <-readChan
-		raw = append(raw, b.rune)
-		switch true {
-		case b.rune >= 0x30 && b.rune <= 0x3F:
-			param = param + string(b.rune)
-		case b.rune > 0 && b.rune <= 0x2F:
-			intermediate = append(intermediate, b.rune)
-		case b.rune >= 0x40 && b.rune <= 0x7e:
-			final = b.rune
-			break CSI
+func (vt *VT) csi(csi string, params []int) {
+	switch csi {
+	case "@":
+		vt.ich(ps(params))
+	case "A":
+		vt.cuu(ps(params))
+	case "B":
+		vt.cud(ps(params))
+	case "C":
+		vt.cuf(ps(params))
+	case "D":
+		vt.cub(ps(params))
+	case "E":
+		vt.cnl(ps(params))
+	case "F":
+		vt.cpl(ps(params))
+	case "G":
+		vt.cha(ps(params))
+	case "H":
+		vt.cup(params)
+	case "I":
+		vt.cht(ps(params))
+	case "J":
+		vt.ed(ps(params))
+	case "K":
+		vt.el(ps(params))
+	case "L":
+		vt.il(ps(params))
+	case "M":
+		vt.dl(ps(params))
+	case "P":
+		vt.dch(ps(params))
+	case "S":
+		ps := ps(params)
+		if ps == 0 {
+			ps = 1
 		}
-	}
-
-	unprocessed := []string{}
-	if strings.Contains(param, ":") {
-		unprocessed = strings.Split(param, ":")
-	} else {
-		unprocessed = strings.Split(param, ";")
-	}
-	for _, par := range unprocessed {
-		par = strings.TrimLeft(par, "0")
-		if par == "" {
-			par = "0"
+		vt.scrollUp(ps)
+	case "T":
+		// 5 params is XTHIMOUSE, ignore
+		if len(params) == 5 {
+			return
 		}
-		params = append(params, par)
+		ps := ps(params)
+		if ps == 0 {
+			ps = 1
+		}
+		vt.scrollDown(ps)
+	case "X":
+		vt.ech(ps(params))
+	case "Z":
+		vt.cbt(ps(params))
+	case "`":
+		vt.hpa(ps(params))
+	case "a":
+		vt.hpr(ps(params))
+	case "b":
+		vt.rep(ps(params))
+	case "c":
+		// TODO
+		// Send device attributes
+		// Write to PTY:
+		// 0x1B[?62;4;22c
+		// VT220 with sixel and ANSI color support
+	case "d":
+		vt.vpa(ps(params))
+	case "e":
+		vt.vpr(ps(params))
+	case "f":
+		// Same as CUP
+		vt.cup(params)
+	case "g":
+		vt.tbc(ps(params))
+	case "h":
+		vt.sm(params)
+	case "?h":
+		vt.decset(params)
+	case "l":
+		vt.rm(params)
+	case "?l":
+		vt.decrst(params)
+	case "m":
+		vt.sgr(params)
+	case "n":
+		// TODO
+		// Send device status report
+		switch ps(params) {
+		case 5:
+			// write to PTY:
+			// 0x1b[0n
+			// "Ok"
+		case 6:
+			// report cursor position
+			// This sequence can be identical to a function key?
+			// CSI r ; c R
+		}
+	case "r":
+		vt.decstbm(params)
+	case "s":
+		vt.savedCursor = vt.cursor
+	case "u":
+		vt.cursor = vt.savedCursor
+	case " q":
+		ps(params)
+		vt.cursor.style = tcell.CursorStyle(ps(params))
 	}
-
-	return final, params, intermediate, raw
 }
 
-func (t *Terminal) handleCSI(readChan chan measuredRune) (renderRequired bool) {
-	final, params, intermediate, raw := parseCSI(readChan)
-
-	switch final {
-	case 'c':
-		return t.csiSendDeviceAttributesHandler(params)
-	case 'd':
-		return t.csiLinePositionAbsoluteHandler(params)
-	case 'f':
-		return t.csiCursorPositionHandler(params)
-	case 'g':
-		return t.csiTabClearHandler(params)
-	case 'h':
-		return t.csiSetModeHandler(params)
-	case 'l':
-		return t.csiResetModeHandler(params)
-	case 'm':
-		return t.sgrSequenceHandler(params)
-	case 'n':
-		return t.csiDeviceStatusReportHandler(params)
-	case 'r':
-		return t.csiSetMarginsHandler(params)
-	case 't':
-		// Window manipulation, unsupported
-		return false
-	case 'q':
-		if string(intermediate) == " " {
-			return t.csiCursorSelection(params)
-		}
-	case 'A':
-		return t.csiCursorUpHandler(params)
-	case 'B':
-		return t.csiCursorDownHandler(params)
-	case 'C':
-		return t.csiCursorForwardHandler(params)
-	case 'D':
-		return t.csiCursorBackwardHandler(params)
-	case 'E':
-		return t.csiCursorNextLineHandler(params)
-	case 'F':
-		return t.csiCursorPrecedingLineHandler(params)
-	case 'G':
-		return t.csiCursorCharacterAbsoluteHandler(params)
-	case 'H':
-		return t.csiCursorPositionHandler(params)
-	case 'J':
-		return t.csiEraseInDisplayHandler(params)
-	case 'K':
-		return t.csiEraseInLineHandler(params)
-	case 'L':
-		return t.csiInsertLinesHandler(params)
-	case 'M':
-		return t.csiDeleteLinesHandler(params)
-	case 'P':
-		return t.csiDeleteHandler(params)
-	case 'S':
-		return t.csiScrollUpHandler(params)
-	case 'T':
-		return t.csiScrollDownHandler(params)
-	case 'X':
-		return t.csiEraseCharactersHandler(params)
-	case '@':
-		return t.csiInsertBlankCharactersHandler(params)
-	case 'p': // reset handler
-		if string(intermediate) == "!" {
-			return t.csiSoftResetHandler(params)
-		}
-		return false
-	}
-
-	for _, b := range intermediate {
-		t.processRunes(measuredRune{
-			rune:  b,
-			width: 1,
-		})
-	}
-
-	// TODO review this:
-	// if this is an unknown CSI sequence, write it to stdout as we can't handle it?
-	//_ = t.writeToRealStdOut(append([]rune{0x1b, '['}, raw...)...)
-	_ = raw
-	// log.Printf("UNKNOWN CSI P(%s) I(%s) %c", strings.Join(params, ";"), string(intermediate), final)
-	return false
-}
-
-// CSI c
-// Send Device Attributes (Primary/Secondary/Tertiary DA)
-func (t *Terminal) csiSendDeviceAttributesHandler(params []string) (renderRequired bool) {
-	// we are VT100
-	// for DA1 we'll respond ?1;2
-	// for DA2 we'll respond >0;0;0
-	response := "?1;2"
-	if len(params) > 0 && len(params[0]) > 0 && params[0][0] == '>' {
-		response = ">0;0;0"
-	}
-
-	// write response to source pty
-	t.writeToPty([]byte("\x1b[" + response + "c"))
-	return false
-}
-
-// CSI n
-// Device Status Report (DSR)
-func (t *Terminal) csiDeviceStatusReportHandler(params []string) (renderRequired bool) {
-	if len(params) == 0 {
-		return false
-	}
-
-	switch params[0] {
-	case "5":
-		t.writeToPty([]byte("\x1b[0n")) // everything is cool
-	case "6": // report cursor position
-		t.writeToPty([]byte(fmt.Sprintf(
-			"\x1b[%d;%dR",
-			t.getActiveBuffer().cursorLine()+1,
-			t.getActiveBuffer().cursorColumn()+1,
-		)))
-	}
-
-	return false
-}
-
-// CSI A
-// Cursor Up Ps Times (default = 1) (CUU)
-func (t *Terminal) csiCursorUpHandler(params []string) (renderRequired bool) {
-	distance := 1
+// Returns a single parameter from a slice of parameters, or 0 if the slice is
+// empty
+func ps(params []int) int {
+	var ps int
 	if len(params) > 0 {
-		var err error
-		distance, err = strconv.Atoi(params[0])
-		if err != nil || distance < 1 {
-			distance = 1
-		}
+		ps = params[0]
 	}
-	t.getActiveBuffer().movePosition(0, -distance)
-	return true
+	return ps
 }
 
-// CSI B
-// Cursor Down Ps Times (default = 1) (CUD)
-func (t *Terminal) csiCursorDownHandler(params []string) (renderRequired bool) {
-	distance := 1
-	if len(params) > 0 {
-		var err error
-		distance, err = strconv.Atoi(params[0])
-		if err != nil || distance < 1 {
-			distance = 1
-		}
+// Insert Blank Character (ICH) CSI Ps @
+// Insert Ps blank characters. Cursor does not change position.
+func (vt *VT) ich(ps int) {
+	if ps == 0 {
+		ps = 1
 	}
-
-	t.getActiveBuffer().movePosition(0, distance)
-	return true
+	col, row := vt.cursor.position()
+	line := vt.activeScreen[row]
+	for i := vt.margin.right; i > col; i -= 1 {
+		line[i] = line[i-column(ps)]
+	}
+	for i := 0; i < ps; i += 1 {
+		line[col+column(i)] = cell{content: ' '}
+	}
 }
 
-// CSI C
-// Cursor Forward Ps Times (default = 1) (CUF)
-func (t *Terminal) csiCursorForwardHandler(params []string) (renderRequired bool) {
-	distance := 1
-	if len(params) > 0 {
-		var err error
-		distance, err = strconv.Atoi(params[0])
-		if err != nil || distance < 1 {
-			distance = 1
-		}
+// Cursur Up (CUU) CSI Ps A
+// Move cursor up in same column, stopping at top margin
+func (vt *VT) cuu(ps int) {
+	if ps == 0 {
+		ps = 1
 	}
-
-	t.getActiveBuffer().movePosition(distance, 0)
-	return true
+	vt.cursor.row -= row(ps)
+	if vt.cursor.row < vt.margin.top {
+		vt.cursor.row = vt.margin.top
+	}
 }
 
-// CSI D
-// Cursor Backward Ps Times (default = 1) (CUB)
-func (t *Terminal) csiCursorBackwardHandler(params []string) (renderRequired bool) {
-	distance := 1
-	if len(params) > 0 {
-		var err error
-		distance, err = strconv.Atoi(params[0])
-		if err != nil || distance < 1 {
-			distance = 1
-		}
+// Cursur Down (CUD) CSI Ps B
+// Move cursor down in same column, stopping at bottom margin
+func (vt *VT) cud(ps int) {
+	if ps == 0 {
+		ps = 1
 	}
-
-	t.getActiveBuffer().movePosition(-distance, 0)
-	return true
+	vt.cursor.row += row(ps)
+	if vt.cursor.row > vt.margin.bottom {
+		vt.cursor.row = vt.margin.bottom
+	}
 }
 
-// CSI E
-// Cursor Next Line Ps Times (default = 1) (CNL)
-func (t *Terminal) csiCursorNextLineHandler(params []string) (renderRequired bool) {
-	distance := 1
-	if len(params) > 0 {
-		var err error
-		distance, err = strconv.Atoi(params[0])
-		if err != nil || distance < 1 {
-			distance = 1
-		}
+// Cursur Forward (CUF) CSI Ps C
+// Move cursor forward Ps columns, stopping at the right margin
+func (vt *VT) cuf(ps int) {
+	if ps == 0 {
+		ps = 1
 	}
-
-	t.getActiveBuffer().movePosition(0, distance)
-	t.getActiveBuffer().setPosition(0, t.getActiveBuffer().cursorLine())
-	return true
+	vt.cursor.col += column(ps)
+	if vt.cursor.col > vt.margin.right {
+		vt.cursor.col = vt.margin.right
+	}
 }
 
-// CSI F
-// Cursor Preceding Line Ps Times (default = 1) (CPL)
-func (t *Terminal) csiCursorPrecedingLineHandler(params []string) (renderRequired bool) {
-	distance := 1
-	if len(params) > 0 {
-		var err error
-		distance, err = strconv.Atoi(params[0])
-		if err != nil || distance < 1 {
-			distance = 1
-		}
+// Cursur Backward (CUB) CSI Ps D
+// Move cursor backward Ps columns, stopping at the left margin
+func (vt *VT) cub(ps int) {
+	if ps == 0 {
+		ps = 1
 	}
-	t.getActiveBuffer().movePosition(0, -distance)
-	t.getActiveBuffer().setPosition(0, t.getActiveBuffer().cursorLine())
-	return true
+	vt.cursor.col -= column(ps)
+	if vt.cursor.col < vt.margin.left {
+		vt.cursor.col = vt.margin.left
+	}
 }
 
-// CSI G
-// Cursor Horizontal Absolute  [column] (default = [row,1]) (CHA)
-func (t *Terminal) csiCursorCharacterAbsoluteHandler(params []string) (renderRequired bool) {
-	distance := 1
-	if len(params) > 0 {
-		var err error
-		distance, err = strconv.Atoi(params[0])
-		if err != nil || params[0] == "" {
-			distance = 1
-		}
+// Cursor Next Line (CNL) CSI Ps E
+// Move cursor to left margin Ps lines down, scrolling if necessary
+func (vt *VT) cnl(ps int) {
+	if ps == 0 {
+		ps = 1
 	}
-
-	t.getActiveBuffer().setPosition(distance-1, t.getActiveBuffer().cursorLine())
-	return true
+	for i := 0; i < ps; i += 1 {
+		vt.nel()
+	}
 }
 
-func parseCursorPosition(params []string) (x, y int) {
-	x, y = 1, 1
-	if len(params) >= 1 {
-		var err error
-		if params[0] != "" {
-			y, err = strconv.Atoi(string(params[0]))
-			if err != nil || y < 1 {
-				y = 1
-			}
-		}
+// Cursor Preceding Line (CPL) CSI Ps F
+// Move cursor to left margin Ps lines down, scrolling if necessary
+func (vt *VT) cpl(ps int) {
+	if ps == 0 {
+		ps = 1
 	}
-	if len(params) >= 2 {
-		if params[1] != "" {
-			var err error
-			x, err = strconv.Atoi(string(params[1]))
-			if err != nil || x < 1 {
-				x = 1
-			}
-		}
+	for i := 0; i < ps; i += 1 {
+		vt.ri()
 	}
-	return x, y
+	vt.cursor.col = vt.margin.left
 }
 
-// CSI f
-// Horizontal and Vertical Position [row;column] (default = [1,1]) (HVP)
-// AND
-// CSI H
-// Cursor Position [row;column] (default = [1,1]) (CUP)
-func (t *Terminal) csiCursorPositionHandler(params []string) (renderRequired bool) {
-	x, y := parseCursorPosition(params)
-	t.getActiveBuffer().setPosition(x-1, y-1)
-	return true
+// Cursor Character Absolute (CHA) CSI Ps G
+// Move cursor to Ps column, stopping at right/left margin. Default is 1, but we
+// default to 0 since our columns our 0 indexed
+func (vt *VT) cha(ps int) {
+	if ps == 0 {
+		ps = 1
+	}
+	vt.cursor.col = column(ps - 1)
+	if vt.cursor.col > vt.margin.right {
+		vt.cursor.col = vt.margin.right
+	}
+	if vt.cursor.col < vt.margin.left {
+		vt.cursor.col = vt.margin.left
+	}
 }
 
-// CSI S
-// Scroll up Ps lines (default = 1) (SU), VT420, ECMA-48
-func (t *Terminal) csiScrollUpHandler(params []string) (renderRequired bool) {
-	distance := 1
-	if len(params) > 1 {
-		return false
-	}
-	if len(params) == 1 {
-		var err error
-		distance, err = strconv.Atoi(params[0])
-		if err != nil || distance < 1 {
-			distance = 1
-		}
-	}
-	t.getActiveBuffer().areaScrollUp(distance)
-	return true
-}
-
-// CSI @
-// Insert Ps (Blank) Character(s) (default = 1) (ICH)
-func (t *Terminal) csiInsertBlankCharactersHandler(params []string) (renderRequired bool) {
-	count := 1
-	if len(params) > 1 {
-		return false
-	}
-	if len(params) == 1 {
-		var err error
-		count, err = strconv.Atoi(params[0])
-		if err != nil || count < 1 {
-			count = 1
-		}
-	}
-
-	t.getActiveBuffer().insertBlankCharacters(count)
-	return true
-}
-
-// CSI L
-// Insert Ps Line(s) (default = 1) (IL)
-func (t *Terminal) csiInsertLinesHandler(params []string) (renderRequired bool) {
-	count := 1
-	if len(params) > 1 {
-		return false
-	}
-	if len(params) == 1 {
-		var err error
-		count, err = strconv.Atoi(params[0])
-		if err != nil || count < 1 {
-			count = 1
-		}
-	}
-
-	t.getActiveBuffer().insertLines(count)
-	return true
-}
-
-// CSI M
-// Delete Ps Line(s) (default = 1) (DL)
-func (t *Terminal) csiDeleteLinesHandler(params []string) (renderRequired bool) {
-	count := 1
-	if len(params) > 1 {
-		return false
-	}
-	if len(params) == 1 {
-		var err error
-		count, err = strconv.Atoi(params[0])
-		if err != nil || count < 1 {
-			count = 1
-		}
-	}
-
-	t.getActiveBuffer().deleteLines(count)
-	return true
-}
-
-// CSI T
-// Scroll down Ps lines (default = 1) (SD), VT420
-func (t *Terminal) csiScrollDownHandler(params []string) (renderRequired bool) {
-	distance := 1
-	if len(params) > 1 {
-		return false
-	}
-	if len(params) == 1 {
-		var err error
-		distance, err = strconv.Atoi(params[0])
-		if err != nil || distance < 1 {
-			distance = 1
-		}
-	}
-	t.getActiveBuffer().areaScrollDown(distance)
-	return true
-}
-
-// CSI r
-// Set Scrolling Region [top;bottom] (default = full size of window) (DECSTBM), VT100
-func (t *Terminal) csiSetMarginsHandler(params []string) (renderRequired bool) {
-	var err error
-	top := 1
-	bottom := t.getActiveBuffer().ViewHeight()
-
-	if len(params) > 2 {
-		return false
-	}
-
-	if len(params) > 0 {
-		top, err = strconv.Atoi(params[0])
-		if err != nil || top < 1 {
-			top = 1
-		}
-
-		if len(params) > 1 {
-			bottom, err = strconv.Atoi(params[1])
-			if err != nil || bottom > t.getActiveBuffer().ViewHeight() || bottom < 1 {
-				bottom = t.getActiveBuffer().ViewHeight()
-			}
-		}
-	}
-	top--
-	bottom--
-
-	t.activeBuffer.setVerticalMargins(top, bottom)
-	t.getActiveBuffer().setPosition(0, 0)
-	return true
-}
-
-// CSI X
-// Erase Ps Character(s) (default = 1) (ECH)
-func (t *Terminal) csiEraseCharactersHandler(params []string) (renderRequired bool) {
-	count := 1
-	if len(params) > 0 {
-		var err error
-		count, err = strconv.Atoi(params[0])
-		if err != nil || count < 1 {
-			count = 1
-		}
-	}
-
-	t.getActiveBuffer().eraseCharacters(count)
-	return true
-}
-
-// CSI l
-// Reset Mode (RM)
-func (t *Terminal) csiResetModeHandler(params []string) (renderRequired bool) {
-	return t.csiSetModes(params, false)
-}
-
-// CSI h
-// Set Mode (SM)
-func (t *Terminal) csiSetModeHandler(params []string) (renderRequired bool) {
-	return t.csiSetModes(params, true)
-}
-
-func (t *Terminal) csiSetModes(modes []string, enabled bool) bool {
-	if len(modes) == 0 {
-		return false
-	}
-	if len(modes) == 1 {
-		return t.csiSetMode(modes[0], enabled)
-	}
-	// should we propagate DEC prefix?
-	const decPrefix = '?'
-	isDec := len(modes[0]) > 0 && modes[0][0] == decPrefix
-
-	var render bool
-
-	// iterate through params, propagating DEC prefix to subsequent elements
-	for i, v := range modes {
-		updatedMode := v
-		if i > 0 && isDec {
-			updatedMode = string(decPrefix) + v
-		}
-		render = t.csiSetMode(updatedMode, enabled) || render
-	}
-
-	return render
-}
-
-func parseModes(mode string) []string {
-	var output []string
-
-	if mode == "" {
-		return nil
-	}
-	var prefix string
-	if mode[0] == '?' {
-		prefix = "?"
-		mode = mode[1:]
-	}
-
-	for len(mode) > 4 {
-		output = append(output, prefix+mode[:4])
-		mode = mode[4:]
-	}
-
-	output = append(output, prefix+mode)
-	return output
-}
-
-func (t *Terminal) csiSetMode(modes string, enabled bool) bool {
-	for _, modeStr := range parseModes(modes) {
-		switch modeStr {
-		case "4":
-			t.activeBuffer.modes.ReplaceMode = !enabled
-		case "20":
-			t.activeBuffer.modes.LineFeedMode = false
-		case "?1":
-			t.activeBuffer.modes.ApplicationCursorKeys = enabled
-		case "?3":
-			// TODO decide if supporting 132 column mode
-		case "?5": // DECSCNM
-			t.activeBuffer.modes.ScreenMode = enabled
-		case "?6":
-			// DECOM
-			t.activeBuffer.modes.OriginMode = enabled
-		case "?7":
-			// auto-wrap mode
-			// DECAWM
-			t.activeBuffer.modes.AutoWrap = enabled
-		case "?9":
-			// Unsupported
-		case "?12", "?13":
-			if enabled {
-				switch t.activeBuffer.cursorShape {
-				case tcell.CursorStyleDefault, tcell.CursorStyleSteadyBlock:
-					t.activeBuffer.cursorShape = tcell.CursorStyleBlinkingBlock
-				case tcell.CursorStyleSteadyUnderline:
-					t.activeBuffer.cursorShape = tcell.CursorStyleBlinkingUnderline
-				case tcell.CursorStyleSteadyBar:
-					t.activeBuffer.cursorShape = tcell.CursorStyleBlinkingBar
-				}
-			} else {
-				switch t.activeBuffer.cursorShape {
-				case tcell.CursorStyleBlinkingBar:
-					t.activeBuffer.cursorShape = tcell.CursorStyleSteadyBar
-				case tcell.CursorStyleBlinkingUnderline:
-					t.activeBuffer.cursorShape = tcell.CursorStyleSteadyUnderline
-				case tcell.CursorStyleBlinkingBlock:
-					t.activeBuffer.cursorShape = tcell.CursorStyleSteadyBlock
-				}
-			}
-			t.activeBuffer.modes.BlinkingCursor = enabled
-		case "?25":
-			t.activeBuffer.modes.ShowCursor = enabled
-		case "?47", "?1047":
-			if enabled {
-				t.useAltBuffer()
-			} else {
-				t.useMainBuffer()
-			}
-		case "?1000": // ?10061000 seen from htop
-			// enable mouse tracking
-			// 1000 refers to ext mode for extended mouse click area - otherwise only x <= 255-31
-			if enabled {
-				t.mouseBtnEvnt = true
-			} else {
-				t.mouseBtnEvnt = false
-			}
-			t.sendMouseEvent()
-		case "?1002":
-			if enabled {
-				t.mouseDrgEvnt = true
-			} else {
-				t.mouseDrgEvnt = false
-			}
-			t.sendMouseEvent()
-		case "?1003":
-			if enabled {
-				t.mouseMtnEvnt = true
-			} else {
-				t.mouseMtnEvnt = false
-			}
-			t.sendMouseEvent()
-		case "?1005":
-			// Unsupported
-		case "?1006":
-			// tcell sets this by default when 1000, 1002, or 1003
-			// are sent
-		case "?1015":
-			// Unsupported
-		case "?1048":
-			if enabled {
-				t.getActiveBuffer().saveCursor()
-			} else {
-				t.getActiveBuffer().restoreCursor()
-			}
-		case "?1049":
-			if enabled {
-				t.useAltBuffer()
-			} else {
-				t.useMainBuffer()
-			}
-		case "?2004":
-			t.activeBuffer.modes.BracketedPasteMode = enabled
-		case "?80":
-			// t.activeBuffer.modes.SixelScrolling = enabled
-		default:
-			// log.Printf("Unsupported CSI mode %s = %t", modeStr, enabled)
-		}
-	}
-	return false
-}
-
-// CSI d
-// Line Position Absolute  [row] (default = [1,column]) (VPA)
-func (t *Terminal) csiLinePositionAbsoluteHandler(params []string) (renderRequired bool) {
-	row := 1
-	if len(params) > 0 {
-		var err error
-		row, err = strconv.Atoi(params[0])
-		if err != nil || row < 1 {
-			row = 1
-		}
-	}
-
-	t.getActiveBuffer().setPosition(t.getActiveBuffer().cursorColumn(), row-1)
-
-	return true
-}
-
-// CSI P
-// Delete Ps Character(s) (default = 1) (DCH)
-func (t *Terminal) csiDeleteHandler(params []string) (renderRequired bool) {
-	n := 1
-	if len(params) >= 1 {
-		var err error
-		n, err = strconv.Atoi(params[0])
-		if err != nil || n < 1 {
-			n = 1
-		}
-	}
-
-	t.getActiveBuffer().deleteChars(n)
-	return true
-}
-
-// CSI g
-// tab clear (TBC)
-func (t *Terminal) csiTabClearHandler(params []string) (renderRequired bool) {
-	n := "0"
-	if len(params) > 0 {
-		n = params[0]
-	}
-	switch n {
-	case "0", "":
-		t.activeBuffer.tabClearAtCursor()
-	case "3":
-		t.activeBuffer.tabReset()
+// Cursor Position (CUP) CSI Ps;Ps H
+// Move cursor to the absolute position
+func (vt *VT) cup(pm []int) {
+	switch len(pm) {
+	case 0:
+		pm = []int{1, 1}
+	case 2:
 	default:
-		return false
+		return
 	}
-
-	return true
+	vt.cursor.row = row(pm[0] - 1)
+	vt.cursor.col = column(pm[1] - 1)
+	if vt.cursor.col > vt.margin.right {
+		vt.cursor.col = vt.margin.right
+	}
 }
 
-// CSI J
-// Erase in Display (ED), VT100
-func (t *Terminal) csiEraseInDisplayHandler(params []string) (renderRequired bool) {
-	n := "0"
-	if len(params) > 0 {
-		n = params[0]
+// Cursor Forward Tabulation (CHT) CSI Ps I
+// Move cursor forward Ps tab stops
+func (vt *VT) cht(ps int) {
+	if ps == 0 {
+		ps = 1
 	}
-
-	switch n {
-	case "0", "":
-		// From cursor to end of screen
-		t.getActiveBuffer().eraseDisplayFromCursor()
-	case "1":
-		// From beginning of screen to cursor
-		t.getActiveBuffer().eraseDisplayToCursor()
-	case "2", "3":
-		t.getActiveBuffer().eraseDisplay()
-	default:
-		return false
+	n := 0
+	for _, ts := range vt.tabStop {
+		if n == ps {
+			break
+		}
+		if vt.cursor.col > ts {
+			continue
+		}
+		vt.cursor.col = ts
+		n += 1
 	}
-
-	return true
 }
 
-// CSI K
-// Erase in Line (EL), VT100
-func (t *Terminal) csiEraseInLineHandler(params []string) (renderRequired bool) {
-	n := "0"
-	if len(params) > 0 {
-		n = params[0]
-	}
+// Erase in Display (ED) CSI Ps J
+func (vt *VT) ed(ps int) {
+	switch ps {
 
-	switch n {
-	case "0", "": // erase after cursor
-		t.getActiveBuffer().eraseLineFromCursor()
-	case "1": // erase to cursor inclusive
-		t.getActiveBuffer().eraseLineToCursor()
-	case "2": // erase entire
-		t.getActiveBuffer().eraseLine()
-	default:
-		return false
-	}
-	return true
-}
-
-// CSI m
-// Character Attributes (SGR)
-func (t *Terminal) sgrSequenceHandler(params []string) bool {
-	if len(params) == 0 {
-		params = []string{"0"}
-	}
-
-	for i := 0; i < len(params); i++ {
-		p := params[i]
-		attr := t.getActiveBuffer().getCursorAttr()
-		switch p {
-		case "00", "0", "":
-			*attr = tcell.StyleDefault
-		case "1", "01":
-			*attr = attr.Bold(true)
-		case "2", "02":
-			*attr = attr.Dim(true)
-		case "3", "03":
-			*attr = attr.Italic(true)
-		case "4", "04":
-			*attr = attr.Underline(true)
-		case "5", "05":
-			*attr = attr.Blink(true)
-		case "7", "07":
-			*attr = attr.Reverse(true)
-		case "8", "08":
-			// *attr = attr.Hidden(true)
-		case "9", "09":
-			*attr = attr.StrikeThrough(true)
-		case "21":
-			*attr = attr.Bold(false)
-		case "22":
-			*attr = attr.Dim(false)
-		case "23":
-			*attr = attr.Italic(false)
-		case "24":
-			*attr = attr.Underline(false)
-		case "25":
-			*attr = attr.Blink(false)
-		case "27":
-			*attr = attr.Reverse(false)
-		case "28":
-			//*attr = attr.Hidden( false)
-		case "29":
-			*attr = attr.StrikeThrough(false)
-		case "38": // set foreground
-			var err error
-			var fg tcell.Color
-			if i+2 < len(params) && params[i+1] == "5" {
-				fg, err = colorFromAnsi(params[i+1 : i+3])
-				i += 2
-			} else if i+4 < len(params) && params[i+1] == "2" {
-				if i+5 < len(params) && params[i+2] == "0" {
-					// 38:2::r:g:b, ignore the <0> in ::
-					params = append(params[:i+2], params[i+3:]...)
+	// Erases from the cursor to the end of the screen, including the cursor
+	// position. Line attribute becomes single-height, single-width for all
+	// completely erased lines.
+	case 0:
+		for r := vt.cursor.row; r < row(vt.height()); r += 1 {
+			for col := column(0); col < column(vt.width()); col += 1 {
+				if r == vt.cursor.row && col < vt.cursor.col {
+					// Don't erase current row before cursor
+					continue
 				}
-				fg, err = colorFromAnsi(params[i+1 : i+5])
-				i += 4
+				vt.activeScreen[r][col].erase(vt.cursor.attrs)
 			}
-			if err != nil {
-				*attr = attr.Foreground(defaultForeground())
-			} else {
-				*attr = attr.Foreground(fg)
-			}
-		case "48": // set background
-			var err error
-			var bg tcell.Color
-			if i+2 < len(params) && params[i+1] == "5" {
-				bg, err = colorFromAnsi(params[i+1 : i+3])
-				i += 2
-			} else if i+4 < len(params) && params[i+1] == "2" {
-				if i+5 < len(params) && params[i+2] == "0" {
-					// 48:2::r:g:b, ignore the <0> in ::
-					params = append(params[:i+2], params[i+3:]...)
+		}
+
+	// Erases from the beginning of the screen to the cursor, including the
+	// cursor position. Line attribute becomes single-height, single-width
+	// for all completely erased lines.
+	case 1:
+		for r := row(0); r <= vt.cursor.row; r += 1 {
+			for col := column(0); col < column(vt.width()); col += 1 {
+				if r == vt.cursor.row && col > vt.cursor.col {
+					// Don't erase current row after current
+					// column
+					break
 				}
-				bg, err = colorFromAnsi(params[i+1 : i+5])
-				i += 4
+				vt.activeScreen[r][col].erase(vt.cursor.attrs)
 			}
+		}
 
-			if err != nil {
-				*attr = attr.Background(defaultBackground())
-			} else {
-				*attr = attr.Background(bg)
+	// Erases the complete display. All lines are erased and changed to
+	// single-width. The cursor does not move.
+	case 2:
+		for r := row(0); r < row(vt.height()); r += 1 {
+			for col := column(0); col < column(vt.width()); col += 1 {
+				vt.activeScreen[r][col].erase(vt.cursor.attrs)
 			}
-		case "39":
-			*attr = attr.Foreground(defaultForeground())
-		case "49":
-			*attr = attr.Background(defaultBackground())
-		default:
-			i, err := strconv.Atoi(p)
-			if err != nil {
-				return false
-			}
-			switch true {
-			case i >= 30 && i <= 37:
-				i = i - 30
-				*attr = attr.Foreground(tcell.PaletteColor(i))
-			case i >= 90 && i <= 97:
-				i = i - 90 + 8
-				*attr = attr.Foreground(tcell.PaletteColor(i))
-			case i >= 40 && i <= 47:
-				i = i - 40
-				*attr = attr.Background(tcell.PaletteColor(i))
-			case i >= 100 && i <= 107:
-				i = i - 100 + 8
-				*attr = attr.Background(tcell.PaletteColor(i))
-			}
-
 		}
 	}
-	return false
 }
 
-func (t *Terminal) csiSoftResetHandler(params []string) bool {
-	t.reset()
-	return true
+// Erase in Line (EL) CSI Ps K
+func (vt *VT) el(ps int) {
+	r := vt.cursor.row
+	switch ps {
+	// Erases from the cursor to the end of the line, including the cursor
+	// position. Line attribute is not affected.
+	case 0:
+		for col := vt.cursor.col; col < column(vt.width()); col += 1 {
+			vt.activeScreen[r][col].erase(vt.cursor.attrs)
+		}
+
+	// Erases from the beginning of the line to the cursor, including the
+	// cursor position. Line attribute is not affected.
+	case 1:
+		for col := column(0); col <= vt.cursor.col; col += 1 {
+			vt.activeScreen[r][col].erase(vt.cursor.attrs)
+		}
+
+	// Erases the complete line.
+	case 2:
+		for col := column(0); col < column(vt.width()); col += 1 {
+			vt.activeScreen[r][col].erase(vt.cursor.attrs)
+		}
+	}
 }
 
-func (t *Terminal) csiCursorSelection(params []string) (renderRequired bool) {
-	if len(params) == 0 {
-		return false
+// Insert Lines (IL) CSI Ps L
+//
+// Insert Ps lines at the cursor. If fewer than Ps lines remain from the current
+// line to the end of the scrolling region, the number of lines inserted is the
+// lesser number. Lines within the scrolling region at and below the cursor move
+// down. Lines moved past the bottom margin are lost. The cursor is reset to the
+// first column. This sequence is ignored when the cursor is outside the
+// scrolling region.
+func (vt *VT) il(ps int) {
+	if vt.cursor.row < vt.margin.top {
+		return
 	}
-	i, err := strconv.Atoi(params[0])
-	if err != nil {
-		return false
+	if vt.cursor.row > vt.margin.bottom {
+		return
 	}
-	t.getActiveBuffer().setCursorShape(tcell.CursorStyle(i))
-	return true
+	if vt.cursor.col < vt.margin.left {
+		return
+	}
+	if vt.cursor.col > vt.margin.right {
+		return
+	}
+
+	if ps == 0 {
+		ps = 1
+	}
+
+	if int(vt.margin.bottom-vt.cursor.row) < (ps - 1) {
+		ps = int(vt.margin.bottom - vt.cursor.row)
+	}
+
+	// move the lines first
+	for r := vt.margin.bottom; r >= (vt.cursor.row + row(ps)); r -= 1 {
+		copy(vt.activeScreen[r], vt.activeScreen[r-row(ps)])
+	}
+
+	// insert the blank lines (we do this by erasing the cells)
+	for r := row(0); r < row(ps); r += 1 {
+		for col := vt.margin.left; col <= vt.margin.right; col += 1 {
+			vt.activeScreen[vt.cursor.row+r][col].erase(tcell.StyleDefault)
+		}
+	}
+	vt.cursor.col = vt.margin.left
 }
 
-func (t *Terminal) sendMouseEvent() {
-	flags := []tcell.MouseFlags{}
-	if t.mouseBtnEvnt {
-		flags = append(flags, tcell.MouseButtonEvents)
+// Delete Line (DL) CSI Ps M
+//
+// Deletes Ps lines starting at the line with the cursor. If fewer than Ps lines
+// remain from the current line to the end of the scrolling region, the number
+// of lines deleted is the lesser number. As lines are deleted, lines within the
+// scrolling region and below the cursor move up, and blank lines are added at
+// the bottom of the scrolling region. The cursor is reset to the first column.
+// This sequence is ignored when the cursor is outside the scrolling region.
+func (vt *VT) dl(ps int) {
+	if vt.cursor.row < vt.margin.top {
+		return
 	}
-	if t.mouseDrgEvnt {
-		flags = append(flags, tcell.MouseDragEvents)
+	if vt.cursor.row > vt.margin.bottom {
+		return
 	}
-	if t.mouseMtnEvnt {
-		flags = append(flags, tcell.MouseMotionEvents)
+	if vt.cursor.col < vt.margin.left {
+		return
 	}
-	t.PostEvent(&EventMouseMode{modes: flags})
+	if vt.cursor.col > vt.margin.right {
+		return
+	}
+
+	if ps == 0 {
+		ps = 1
+	}
+
+	if int(vt.margin.bottom-vt.cursor.row) < (ps - 1) {
+		ps = int(vt.margin.bottom - vt.cursor.row)
+	}
+
+	for r := vt.cursor.row; r <= vt.margin.bottom; r += 1 {
+		if r <= vt.margin.bottom-row(ps) {
+			copy(vt.activeScreen[r], vt.activeScreen[r+row(ps)])
+			continue
+		}
+		for col := vt.margin.left; col <= vt.margin.right; col += 1 {
+			vt.activeScreen[r][col].erase(tcell.StyleDefault)
+		}
+	}
+	vt.cursor.col = vt.margin.left
+}
+
+// Delete Characters (DCH) CSI Ps P
+//
+// Deletes Ps characters starting with the character at the cursor position.
+// When a character is deleted, all characters to the right of the cursor move
+// to the left. This creates a space character at the right margin for each
+// character deleted. Character attributes move with the characters. The spaces
+// created at the end of the line have all their character attributes off.
+func (vt *VT) dch(ps int) {
+	if ps == 0 {
+		ps = 1
+	}
+	row := vt.cursor.row
+	for col := vt.cursor.col; col <= vt.margin.right; col += 1 {
+		if col+column(ps) > vt.margin.right {
+			vt.activeScreen[row][col].erase(tcell.StyleDefault)
+			continue
+		}
+		vt.activeScreen[row][col] = vt.activeScreen[row][col+column(ps)]
+	}
+}
+
+// Erase Characters (ECH) CSI Ps X
+//
+// Erases characters at the cursor position and the next Ps-1 characters. A
+// parameter of 0 or 1 erases a single character. Character attributes are set
+// to normal. No reformatting of data on the line occurs. The cursor remains in
+// the same position.
+func (vt *VT) ech(ps int) {
+	if ps == 0 {
+		ps = 1
+	}
+
+	for i := column(0); i < column(ps); i += 1 {
+		if vt.cursor.col+i == column(vt.width())-1 {
+			return
+		}
+		vt.activeScreen[vt.cursor.row][vt.cursor.col+i].erase(vt.cursor.attrs)
+	}
+}
+
+// Cursor Backward Tabulation (CBT) CSI Ps Z
+//
+// Move cursor backward Ps tabulations
+func (vt *VT) cbt(ps int) {
+	if ps == 0 {
+		ps = 1
+	}
+	n := 0
+	for i := len(vt.tabStop) - 1; i >= 0; i -= 1 {
+		if n == ps {
+			break
+		}
+		if vt.cursor.col < vt.tabStop[i] {
+			break
+		}
+		vt.cursor.col = vt.tabStop[i]
+		n += 1
+	}
+}
+
+// Tab Clear (TBC) CSI Ps g
+func (vt *VT) tbc(ps int) {
+	switch ps {
+	case 0:
+		tabs := []column{}
+		for _, tab := range vt.tabStop {
+			if tab == vt.cursor.col {
+				continue
+			}
+			tabs = append(tabs, tab)
+		}
+		vt.tabStop = tabs
+	case 3:
+		vt.tabStop = []column{}
+	}
+}
+
+// Line Position Absolute (VPA) CSI Ps d
+//
+// Move cursor to line Ps
+func (vt *VT) vpa(ps int) {
+	if ps == 0 {
+		ps = 1
+	}
+	vt.cursor.row = row(ps - 1)
+	if vt.cursor.row > row(vt.height()-1) {
+		vt.cursor.row = row(vt.height() - 1)
+	}
+}
+
+// Line Position Relative (VPR) CSI Ps e
+//
+// Move down Ps lines
+func (vt *VT) vpr(ps int) {
+	if ps == 0 {
+		ps = 1
+	}
+	vt.cursor.row += row(ps)
+	if vt.cursor.row > row(vt.height()-1) {
+		vt.cursor.row = row(vt.height() - 1)
+	}
+}
+
+// Character Position Absolute (HPA) CSI Ps `
+//
+// Move cursor to column Ps
+func (vt *VT) hpa(ps int) {
+	if ps == 0 {
+		ps = 1
+	}
+	vt.cursor.col = column(ps - 1)
+	if vt.cursor.col > column(vt.width()-1) {
+		vt.cursor.col = column(vt.width() - 1)
+	}
+}
+
+// Character Position Relative (HPR) CSI Ps a
+//
+// Move cursor to the right Ps times
+func (vt *VT) hpr(ps int) {
+	if ps == 0 {
+		ps = 1
+	}
+	vt.cursor.col += column(ps)
+	if vt.cursor.col > column(vt.width()-1) {
+		vt.cursor.col = column(vt.width() - 1)
+	}
+}
+
+// Repeat (REP) CSI Ps b
+//
+// Repeat preceding graphic character Ps times
+func (vt *VT) rep(ps int) {
+	col := vt.cursor.col
+	if col == 0 {
+		return
+	}
+	ch := vt.activeScreen[vt.cursor.row][col-1]
+	for i := column(0); i < vt.margin.right; i += 1 {
+		vt.activeScreen[vt.cursor.row][vt.cursor.col+i].content = ch.content
+	}
+}
+
+// Set top and bottom margins CSI Ps ; Ps r
+func (vt *VT) decstbm(pm []int) {
+	if len(pm) != 2 {
+		vt.margin.top = 0
+		vt.margin.bottom = row(vt.height()) - 1
+		return
+	}
+	vt.margin.top = row(pm[0]) - 1
+	vt.margin.bottom = row(pm[1]) - 1
 }

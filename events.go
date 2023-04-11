@@ -4,21 +4,18 @@ import (
 	"time"
 
 	"github.com/gdamore/tcell/v2"
-	"github.com/gdamore/tcell/v2/views"
 )
 
-// EventTerminal is a generic terminal event which satisfies the
-// views.EventWidget interface. It is suitable for embedding in specific
-// terminal events.
+// EventTerminal is a generic terminal event
 type EventTerminal struct {
-	when   time.Time
-	widget *Terminal
+	when time.Time
+	vt   *VT
 }
 
-func newEventTerminal(t *Terminal) *EventTerminal {
+func newEventTerminal(vt *VT) *EventTerminal {
 	return &EventTerminal{
-		when:   time.Now(),
-		widget: t,
+		when: time.Now(),
+		vt:   vt,
 	}
 }
 
@@ -26,8 +23,13 @@ func (ev *EventTerminal) When() time.Time {
 	return ev.when
 }
 
-func (ev *EventTerminal) Widget() views.Widget {
-	return ev.widget
+func (ev *EventTerminal) VT() *VT {
+	return ev.vt
+}
+
+// EventRedraw is emitted when the terminal requires redrawing
+type EventRedraw struct {
+	*EventTerminal
 }
 
 // EventClosed is emitted when the terminal exits
@@ -37,9 +39,8 @@ type EventClosed struct {
 
 // EventTitle is emitted when the terminal's title changes
 type EventTitle struct {
-	title string
-
 	*EventTerminal
+	title string
 }
 
 func (ev *EventTitle) Title() string {
@@ -57,7 +58,7 @@ func (ev *EventMouseMode) Flags() []tcell.MouseFlags {
 	return ev.modes
 }
 
-// BEL
+// EventBell is emitted when BEL is received
 type EventBell struct {
 	*EventTerminal
 }
