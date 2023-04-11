@@ -43,6 +43,8 @@ const (
 	//
 	// Use alternate screen
 	smcup
+	// Bracketed paste
+	paste
 )
 
 func (vt *VT) sm(params []int) {
@@ -99,6 +101,8 @@ func (vt *VT) decset(params []int) {
 			vt.decsc()
 			vt.activeScreen = vt.altScreen
 			vt.mode |= smcup
+		case 2004:
+			vt.mode |= paste
 		}
 	}
 }
@@ -127,6 +131,8 @@ func (vt *VT) decrst(params []int) {
 			vt.decrc()
 			vt.activeScreen = vt.primaryScreen
 			vt.mode &^= smcup
+		case 2004:
+			vt.mode &^= paste
 		}
 	}
 }

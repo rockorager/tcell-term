@@ -339,13 +339,16 @@ func (vt *VT) HandleEvent(e tcell.Event) bool {
 		vt.pty.WriteString(keyCode(e))
 		return true
 	case *tcell.EventPaste:
-		if e.Start() {
-			// vt.StartPaste()
+		switch {
+		case vt.mode&paste == 0:
+			return false
+		case e.Start():
+			vt.pty.WriteString(info.PasteStart)
+			return true
+		case e.End():
+			vt.pty.WriteString(info.PasteEnd)
+			return true
 		}
-		if e.End() {
-			// vt.EndPaste()
-		}
-		return true
 	case *tcell.EventMouse:
 		// if e.Buttons() == tcell.ButtonNone && vt.mouseBtnIn != tcell.ButtonNone {
 		// 	// Button was in, and now it's not
