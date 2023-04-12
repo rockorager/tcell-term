@@ -126,7 +126,8 @@ func (vt *VT) ich(ps int) {
 	if ps == 0 {
 		ps = 1
 	}
-	col, row := vt.cursor.position()
+	col := vt.cursor.col
+	row := vt.cursor.row
 	line := vt.activeScreen[row]
 	for i := vt.margin.right; i > col; i -= 1 {
 		line[i] = line[i-column(ps)]
