@@ -147,6 +147,8 @@ func (vt *VT) Resize(w int, h int) {
 }
 
 func (vt *VT) width() int {
+	vt.mu.Lock()
+	defer vt.mu.Unlock()
 	if len(vt.activeScreen) > 0 {
 		return len(vt.activeScreen[0])
 	}
@@ -154,6 +156,8 @@ func (vt *VT) width() int {
 }
 
 func (vt *VT) height() int {
+	vt.mu.Lock()
+	defer vt.mu.Unlock()
 	return len(vt.activeScreen)
 }
 
@@ -167,7 +171,8 @@ func (vt *VT) print(r rune) {
 	// If we are single-shifted, move the previous charset into the current
 	vt.charset = vt.sShift
 
-	col, row := vt.cursor.position()
+	col := vt.cursor.col
+	row := vt.cursor.row
 	w := column(runewidth.RuneWidth(r))
 
 	if vt.mode&irm != 0 {
@@ -303,10 +308,14 @@ func (vt *VT) postEvent(ev tcell.Event) {
 }
 
 func (vt *VT) SetSurface(srf Surface) {
+	vt.mu.Lock()
 	vt.surface = srf
+	vt.mu.Unlock()
 }
 
 func (vt *VT) Draw() {
+	vt.mu.Lock()
+	defer vt.mu.Unlock()
 	if vt.surface == nil {
 		return
 	}
