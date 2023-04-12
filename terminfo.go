@@ -180,13 +180,13 @@ var info = &terminfo.Terminfo{
 	KeyMetaShfEnd:           "",
 	EnablePaste:             "\x1b[?2004h", // BE
 	DisablePaste:            "\x1b[?2004l", // BD
-	PasteStart:              "\x1b[200~", // PS
-	PasteEnd:                "\x1b[201~", // PE
+	PasteStart:              "\x1b[200~",   // PS
+	PasteEnd:                "\x1b[201~",   // PE
 	Modifiers:               1,
-	InsertChar:              "\x1b[@", // string to insert a character (ich1)
-	AutoMargin:              true,     // true if writing to last cell in line advances
-	TrueColor:               true,     // true if the terminal supports direct color
-	CursorDefault:           "\x1b[0 q",
+	InsertChar:              "\x1b[@",   // string to insert a character (ich1)
+	AutoMargin:              true,       // true if writing to last cell in line advances
+	TrueColor:               true,       // true if the terminal supports direct color
+	CursorDefault:           "\x1b[0 q", // Se
 	CursorBlinkingBlock:     "\x1b[1 q",
 	CursorSteadyBlock:       "\x1b[2 q",
 	CursorBlinkingUnderline: "\x1b[3 q",
