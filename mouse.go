@@ -8,6 +8,15 @@ import (
 
 func (vt *VT) handleMouse(ev *tcell.EventMouse) string {
 	if vt.mode&mouseButtons == 0 && vt.mode&mouseDrag == 0 && vt.mode&mouseMotion == 0 && vt.mode&mouseSGR == 0 {
+		if vt.mode&altScroll != 0 && vt.mode&smcup != 0 {
+			// Translate wheel motion into arrows up and down
+			if ev.Buttons()&tcell.WheelUp != 0 {
+				vt.pty.WriteString(info.KeyUp)
+			}
+			if ev.Buttons()&tcell.WheelDown != 0 {
+				vt.pty.WriteString(info.KeyDown)
+			}
+		}
 		return ""
 	}
 	// Return early if we aren't reporting motion or drag events
@@ -35,6 +44,12 @@ func (vt *VT) handleMouse(ev *tcell.EventMouse) string {
 	if ev.Buttons() == tcell.ButtonNone {
 		b += 3
 	}
+	if ev.Buttons()&tcell.WheelUp != 0 {
+		b += 0 + 64
+	}
+	if ev.Buttons()&tcell.WheelDown != 0 {
+		b += 1 + 64
+	}
 	if ev.Modifiers()&tcell.ModShift != 0 {
 		b += 4
 	}
@@ -54,6 +69,12 @@ func (vt *VT) handleMouse(ev *tcell.EventMouse) string {
 
 	if vt.mode&mouseSGR != 0 {
 		switch {
+		case ev.Buttons()&tcell.WheelUp != 0:
+			return fmt.Sprintf("\x1b[<%d;%d;%dM", b, col+1, row+1)
+
+		case ev.Buttons()&tcell.WheelDown != 0:
+			return fmt.Sprintf("\x1b[<%d;%d;%dM", b, col+1, row+1)
+
 		case ev.Buttons() == tcell.ButtonNone && vt.mouseBtn != tcell.ButtonNone:
 			// Button was in, and now it's not
 			var button int
@@ -71,7 +92,6 @@ func (vt *VT) handleMouse(ev *tcell.EventMouse) string {
 		default:
 			vt.mouseBtn = ev.Buttons()
 			return fmt.Sprintf("\x1b[<%d;%d;%dM", b, col+1, row+1)
-
 		}
 	}
 

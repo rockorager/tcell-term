@@ -53,7 +53,8 @@ const (
 	mouseMotion
 	// Mouse SGR mode
 	mouseSGR
-	
+	// Alternate scroll
+	altScroll
 )
 
 func (vt *VT) sm(params []int) {
@@ -114,10 +115,15 @@ func (vt *VT) decset(params []int) {
 			vt.mode |= mouseMotion
 		case 1006:
 			vt.mode |= mouseSGR
+		case 1007:
+			vt.mode |= altScroll
 		case 1049:
 			vt.decsc()
 			vt.activeScreen = vt.altScreen
 			vt.mode |= smcup
+			// Enable altScroll in the alt screen. This is only used
+			// if the application doesn't enable mouse
+			vt.mode |= altScroll
 		case 2004:
 			vt.mode |= paste
 		}
@@ -152,10 +158,13 @@ func (vt *VT) decrst(params []int) {
 			vt.mode &^= mouseMotion
 		case 1006:
 			vt.mode &^= mouseSGR
+		case 1007:
+			vt.mode &^= altScroll
 		case 1049:
 			vt.decrc()
 			vt.activeScreen = vt.primaryScreen
 			vt.mode &^= smcup
+			vt.mode &^= altScroll
 		case 2004:
 			vt.mode &^= paste
 		}
