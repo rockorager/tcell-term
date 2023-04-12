@@ -99,9 +99,12 @@ func (vt *VT) update(seq Sequence) {
 	case DCSEndOfData:
 	}
 	// TODO optimize when we post EventRedraw
-	vt.postEvent(&EventRedraw{
-		EventTerminal: newEventTerminal(vt),
-	})
+	if !vt.dirty {
+		vt.dirty = true
+		vt.postEvent(&EventRedraw{
+			EventTerminal: newEventTerminal(vt),
+		})
+	}
 }
 
 func (vt *VT) String() string {
@@ -316,6 +319,7 @@ func (vt *VT) SetSurface(srf Surface) {
 func (vt *VT) Draw() {
 	vt.mu.Lock()
 	defer vt.mu.Unlock()
+	vt.dirty = false
 	if vt.surface == nil {
 		return
 	}
