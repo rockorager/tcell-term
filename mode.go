@@ -45,6 +45,15 @@ const (
 	smcup
 	// Bracketed paste
 	paste
+	// vt220 mouse
+	mouseButtons
+	// vt220 + drag
+	mouseDrag
+	// vt220 + all motion
+	mouseMotion
+	// Mouse SGR mode
+	mouseSGR
+	
 )
 
 func (vt *VT) sm(params []int) {
@@ -97,6 +106,14 @@ func (vt *VT) decset(params []int) {
 			vt.mode |= decarm
 		case 25:
 			vt.mode |= dectcem
+		case 1000:
+			vt.mode |= mouseButtons
+		case 1002:
+			vt.mode |= mouseDrag
+		case 1003:
+			vt.mode |= mouseMotion
+		case 1006:
+			vt.mode |= mouseSGR
 		case 1049:
 			vt.decsc()
 			vt.activeScreen = vt.altScreen
@@ -127,6 +144,14 @@ func (vt *VT) decrst(params []int) {
 			vt.mode &^= decarm
 		case 25:
 			vt.mode &^= dectcem
+		case 1000:
+			vt.mode &^= mouseButtons
+		case 1002:
+			vt.mode &^= mouseDrag
+		case 1003:
+			vt.mode &^= mouseMotion
+		case 1006:
+			vt.mode &^= mouseSGR
 		case 1049:
 			vt.decrc()
 			vt.activeScreen = vt.primaryScreen

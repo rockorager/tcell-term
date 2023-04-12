@@ -50,7 +50,8 @@ type VT struct {
 	pty          *os.File
 	surface      Surface
 
-	step chan bool
+	step     chan bool
+	mouseBtn tcell.ButtonMask
 }
 
 type margin struct {
@@ -350,28 +351,8 @@ func (vt *VT) HandleEvent(e tcell.Event) bool {
 			return true
 		}
 	case *tcell.EventMouse:
-		// if e.Buttons() == tcell.ButtonNone && vt.mouseBtnIn != tcell.ButtonNone {
-		// 	// Button was in, and now it's not
-		// 	x, y := e.Position()
-		// 	s := fmt.Sprintf("\x1b[<%d;%d;%dm", vt.mouseBtnIn-1, x+1, y+1)
-		// 	// vt.mouseBtnIn = tcell.ButtonNone
-		// 	vt.pty.Write([]byte(s))
-		// }
-		// if e.Buttons() != tcell.ButtonNone {
-		// 	// tcell button map is 1 off from the ansi codes
-		// 	// button 0 is main, etc
-		// 	btn := e.Buttons() - 1
-		// 	x, y := e.Position()
-		// 	if vt.mouseBtnIn != tcell.ButtonNone {
-		// 		// we are dragging, add 32 to button
-		// 		btn = btn + 32
-		// 	}
-		// 	s := fmt.Sprintf("\x1b[<%d;%d;%dM", btn, x+1, y+1)
-		// 	vt.mouseBtnIn = e.Buttons()
-		// 	vt.writeToPty([]byte(s))
-		// } else {
-		// 	vt.mouseBtnIn = tcell.ButtonNone
-		// }
+		str := vt.handleMouse(e)
+		vt.pty.WriteString(str)
 	}
 	return false
 }

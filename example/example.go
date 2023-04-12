@@ -69,16 +69,18 @@ func (m *model) Update(ev tcell.Event) {
 		m.s.Fini()
 		return
 	case *tcell.EventPaste:
-		// return m.term.HandleEvent(ev)
+		m.term.HandleEvent(ev)
+		return
 	case *tcell.EventMouse:
 		// Translate the coordinates to our global coordinates (y-2)
-		// x, y := ev.Position()
-		// if y-2 < 0 {
-		// 	// Event is outside our view
-		// 	return false
-		// }
-		// e := tcell.NewEventMouse(x, y-2, ev.Buttons(), ev.Modifiers())
-		// return m.term.HandleEvent(e)
+		x, y := ev.Position()
+		if y-2 < 0 {
+			// Event is outside our view
+			return
+		}
+		e := tcell.NewEventMouse(x, y-2, ev.Buttons(), ev.Modifiers())
+		m.term.HandleEvent(e)
+		return
 	case *tcellterm.EventMouseMode:
 		m.s.EnableMouse(ev.Flags()...)
 	}
@@ -117,19 +119,13 @@ func main() {
 	m.titleView = views.NewViewPort(m.s, 0, 0, -1, 2)
 	m.title.SetView(m.titleView)
 
-	recorder, err := os.Create("recording.log")
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
-		os.Exit(1)
-	}
-	defer recorder.Close()
-
 	m.termView = views.NewViewPort(m.s, 0, 2, -1, -1)
 	// m.term = tcellterm.New(tcellterm.WithWriter(recorder))
 	// m.term.Watch(m)
 	m.term = tcellterm.New()
 	m.term.SetSurface(m.termView)
 	m.term.Attach(m.HandleEvent)
+	m.s.EnableMouse()
 
 	cmd := exec.Command(os.Getenv("SHELL"))
 	err = m.term.Start(cmd)
