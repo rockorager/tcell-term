@@ -5,6 +5,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 
@@ -28,7 +29,6 @@ func (m *model) Update(ev tcell.Event) {
 		switch ev.Key() {
 		case tcell.KeyCtrlC:
 			m.term.Close()
-			m.s.Clear()
 			m.s.Fini()
 			return
 		}
@@ -52,13 +52,6 @@ func (m *model) Update(ev tcell.Event) {
 		m.term.Draw()
 		m.title.Draw()
 
-		// vis, x, y, style := m.vt.GetCursor()
-		// if vis {
-		// 	m.s.ShowCursor(x, y+2)
-		// 	m.s.SetCursorStyle(style)
-		// } else {
-		// 	m.s.HideCursor()
-		// }
 		row, col, style, _ := m.term.Cursor()
 		m.s.SetCursorStyle(style)
 		m.s.ShowCursor(col, row+2)
@@ -95,6 +88,8 @@ func (m *model) HandleEvent(ev tcell.Event) {
 }
 
 func main() {
+	f, _ := os.Create("recording.log")
+	log.SetOutput(f)
 	var err error
 	m := &model{}
 	m.s, err = tcell.NewScreen()
