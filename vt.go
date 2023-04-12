@@ -78,11 +78,15 @@ func New() *VT {
 
 // row, col, style, vis
 func (vt *VT) Cursor() (int, int, tcell.CursorStyle, bool) {
+	vt.mu.Lock()
+	defer vt.mu.Unlock()
 	vis := vt.mode&dectcem > 0
 	return int(vt.cursor.row), int(vt.cursor.col), vt.cursor.style, vis
 }
 
 func (vt *VT) update(seq Sequence) {
+	vt.mu.Lock()
+	defer vt.mu.Unlock()
 	switch seq := seq.(type) {
 	case Print:
 		vt.print(rune(seq))
@@ -108,6 +112,8 @@ func (vt *VT) update(seq Sequence) {
 }
 
 func (vt *VT) String() string {
+	vt.mu.Lock()
+	defer vt.mu.Unlock()
 	str := strings.Builder{}
 	for row := range vt.activeScreen {
 		for col := range vt.activeScreen[row] {
@@ -147,8 +153,6 @@ func (vt *VT) Resize(w int, h int) {
 }
 
 func (vt *VT) width() int {
-	vt.mu.Lock()
-	defer vt.mu.Unlock()
 	if len(vt.activeScreen) > 0 {
 		return len(vt.activeScreen[0])
 	}
@@ -156,8 +160,6 @@ func (vt *VT) width() int {
 }
 
 func (vt *VT) height() int {
-	vt.mu.Lock()
-	defer vt.mu.Unlock()
 	return len(vt.activeScreen)
 }
 
@@ -258,7 +260,6 @@ func (vt *VT) Start(cmd *exec.Cmd) error {
 		Cols: uint16(w),
 		Rows: uint16(h),
 	}
-	vt.mu.Lock()
 	vt.pty, err = pty.StartWithAttrs(
 		cmd,
 		&winsize,
@@ -267,7 +268,6 @@ func (vt *VT) Start(cmd *exec.Cmd) error {
 			Setctty: true,
 			Ctty:    1,
 		})
-	vt.mu.Unlock()
 	if err != nil {
 		return err
 	}
@@ -290,14 +290,22 @@ func (vt *VT) Start(cmd *exec.Cmd) error {
 }
 
 func (vt *VT) Close() {
+	vt.mu.Lock()
+	defer vt.mu.Unlock()
+	vt.cmd.Process.Kill()
+	vt.cmd.Wait()
 	vt.pty.Close()
 }
 
 func (vt *VT) Attach(fn func(ev tcell.Event)) {
+	vt.mu.Lock()
+	defer vt.mu.Unlock()
 	vt.eventHandler = fn
 }
 
 func (vt *VT) Detach() {
+	vt.mu.Lock()
+	defer vt.mu.Unlock()
 	vt.eventHandler = func(ev tcell.Event) {
 		return
 	}
@@ -309,8 +317,8 @@ func (vt *VT) postEvent(ev tcell.Event) {
 
 func (vt *VT) SetSurface(srf Surface) {
 	vt.mu.Lock()
+	defer vt.mu.Unlock()
 	vt.surface = srf
-	vt.mu.Unlock()
 }
 
 func (vt *VT) Draw() {
@@ -341,6 +349,8 @@ func (vt *VT) Draw() {
 }
 
 func (vt *VT) HandleEvent(e tcell.Event) bool {
+	vt.mu.Lock()
+	defer vt.mu.Unlock()
 	switch e := e.(type) {
 	case *tcell.EventKey:
 		if e.Key() == tcell.KeyEnter {
