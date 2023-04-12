@@ -2,7 +2,6 @@ package tcellterm
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"strings"
@@ -50,7 +49,6 @@ type VT struct {
 	pty          *os.File
 	surface      Surface
 
-	step     chan bool
 	mouseBtn tcell.ButtonMask
 }
 
@@ -69,11 +67,7 @@ const (
 )
 
 func New() *VT {
-	f, _ := os.Create("recording.log")
-	log.SetOutput(f)
-	return &VT{
-		step: make(chan bool),
-	}
+	return &VT{}
 }
 
 // row, col, style, vis
@@ -104,7 +98,6 @@ func (vt *VT) update(seq Sequence) {
 	case DCSData:
 	case DCSEndOfData:
 	}
-	log.Printf("%s\n", seq)
 	// TODO optimize when we post EventRedraw
 	vt.postEvent(&EventRedraw{
 		EventTerminal: newEventTerminal(vt),
@@ -276,7 +269,6 @@ func (vt *VT) Start(cmd *exec.Cmd) error {
 	vt.parser = NewParser(vt.pty)
 	go func() {
 		for {
-			// <-vt.step
 			seq := vt.parser.Next()
 			switch seq := seq.(type) {
 			case EOF:
@@ -353,9 +345,6 @@ func (vt *VT) HandleEvent(e tcell.Event) bool {
 	defer vt.mu.Unlock()
 	switch e := e.(type) {
 	case *tcell.EventKey:
-		if e.Key() == tcell.KeyEnter {
-			// vt.step <- true
-		}
 		vt.pty.WriteString(keyCode(e))
 		return true
 	case *tcell.EventPaste:
