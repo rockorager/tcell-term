@@ -75,3 +75,7 @@ type DCSEndOfData struct{}
 
 // Sent when the underlying PTY is closed
 type EOF struct{}
+
+func (seq EOF) String() string {
+	return "EOF"
+}
