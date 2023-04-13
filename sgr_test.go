@@ -58,22 +58,6 @@ func TestSGR(t *testing.T) {
 			},
 		},
 		{
-			name:  "RGB with colorspace",
-			input: []int{38, 2, 0, 1, 2, 3},
-			expected: func() tcell.Style {
-				color := tcell.NewRGBColor(1, 2, 3)
-				return tcell.StyleDefault.Foreground(color)
-			},
-		},
-		{
-			name:  "RGB fg and bg with colorspace",
-			input: []int{38, 2, 0, 1, 2, 3, 48, 2, 0, 1, 2, 3},
-			expected: func() tcell.Style {
-				color := tcell.NewRGBColor(1, 2, 3)
-				return tcell.StyleDefault.Foreground(color).Background(color)
-			},
-		},
-		{
 			name:  "256 Color",
 			input: []int{38, 5, 0},
 			expected: func() tcell.Style {
@@ -84,6 +68,21 @@ func TestSGR(t *testing.T) {
 		{
 			name:  "256 with extra params",
 			input: []int{38, 5, 0, 0, 0, 0, 0},
+			expected: func() tcell.Style {
+				return tcell.StyleDefault
+			},
+		},
+		{
+			name:  "RGB and bold",
+			input: []int{38, 2, 1, 2, 3, 1},
+			expected: func() tcell.Style {
+				color := tcell.NewRGBColor(1, 2, 3)
+				return tcell.StyleDefault.Foreground(color).Bold(true)
+			},
+		},
+		{
+			name:  "RGB malformed",
+			input: []int{38, 2},
 			expected: func() tcell.Style {
 				return tcell.StyleDefault
 			},

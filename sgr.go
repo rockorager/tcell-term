@@ -47,25 +47,31 @@ func (vt *VT) sgr(params []int) {
 			vt.cursor.attrs = vt.cursor.attrs.Foreground(color)
 		case 38:
 			var color tcell.Color
-			switch len(params[i:]) {
-			case 3:
-				if params[i+1] != 5 {
+			if len(params[i:]) < 3 {
+				// Malformed without at least 3 params. Don't
+				// set any more attributes at this point
+				return
+			}
+			switch params[i+1] {
+			case 2:
+				if len(params[i:]) < 5 {
+					// Malformed without at least5 params.
+					// Don't set any more attributes at this
+					// point
 					return
 				}
+				color = tcell.NewRGBColor(
+					int32(params[i+2]),
+					int32(params[i+3]),
+					int32(params[i+4]),
+				)
+				i += 4
+			case 5:
 				color = tcell.PaletteColor(params[i+2])
 				i += 2
-			case 5, 10:
-				if params[i+1] != 2 {
-					return
-				}
-				color = tcell.NewRGBColor(int32(params[i+2]), int32(params[i+3]), int32(params[i+4]))
-				i += 4
-			case 6, 12:
-				if params[i+1] != 2 {
-					return
-				}
-				color = tcell.NewRGBColor(int32(params[i+3]), int32(params[i+4]), int32(params[i+5]))
-				i += 5
+			default:
+				// Malformed
+				return
 			}
 			vt.cursor.attrs = vt.cursor.attrs.Foreground(color)
 		case 39:

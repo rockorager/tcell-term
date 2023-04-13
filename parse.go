@@ -186,6 +186,9 @@ func (p *Parser) param(r rune) {
 // A final character has arrived, so determine the control function to be
 // executed from private marker, intermediate character(s) and final
 // character, and execute it, passing in the parameter list.
+//
+// csiDispatch will normalize SGR RGB sequences to a maximum of 5 parameters. IE
+// '38:2::0:0:0' will return []int{38,2,0,0,0}
 func (p *Parser) csiDispatch(r rune) {
 	csi := CSI{
 		Final:        r,
@@ -196,11 +199,28 @@ func (p *Parser) csiDispatch(r rune) {
 		p.emit(csi)
 		return
 	}
-	delim := ";"
-	if strings.Contains(string(p.params), ":") {
-		delim = ":"
+	paramStrRaw := strings.Split(string(p.params), ";")
+	paramStr := make([]string, 0, len(paramStrRaw))
+	for _, param := range paramStrRaw {
+		if !strings.Contains(param, ":") {
+			paramStr = append(paramStr, param)
+			continue
+		}
+		// Contains an RGB param string. Preprocess this to normalize to
+		// a length of 5
+		paramsRGB := strings.Split(param, ":")
+		switch len(paramsRGB) {
+		case 5:
+			paramStr = append(paramStr, paramsRGB...)
+		case 6:
+			for i, p := range paramsRGB {
+				if i == 2 {
+					continue
+				}
+				paramStr = append(paramStr, p)
+			}
+		}
 	}
-	paramStr := strings.Split(string(p.params), delim)
 	params := make([]int, 0, len(paramStr))
 	for _, param := range paramStr {
 		if param == "" {

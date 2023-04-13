@@ -230,7 +230,31 @@ func TestCSI(t *testing.T) {
 				Print('a'),
 				CSI{
 					Final:        'm',
-					Parameters:   []int{38, 2, 0, 0, 0, 0},
+					Parameters:   []int{38, 2, 0, 0, 0},
+					Intermediate: []rune{},
+				},
+			},
+		},
+		{
+			name:  "CSI Param with colorspace fg and bg",
+			input: "a\x1b[38:2::0:0:0;48:2::0:0:0m",
+			expected: []Sequence{
+				Print('a'),
+				CSI{
+					Final:        'm',
+					Parameters:   []int{38, 2, 0, 0, 0, 48, 2, 0, 0, 0},
+					Intermediate: []rune{},
+				},
+			},
+		},
+		{
+			name:  "CSI Param SGR with semicolons",
+			input: "a\x1b[38;2;0;0;0;48;2;0;0;0m",
+			expected: []Sequence{
+				Print('a'),
+				CSI{
+					Final:        'm',
+					Parameters:   []int{38, 2, 0, 0, 0, 48, 2, 0, 0, 0},
 					Intermediate: []rune{},
 				},
 			},
