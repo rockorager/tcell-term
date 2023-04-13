@@ -290,8 +290,10 @@ func (vt *VT) Start(cmd *exec.Cmd) error {
 func (vt *VT) Close() {
 	vt.mu.Lock()
 	defer vt.mu.Unlock()
-	vt.cmd.Process.Kill()
-	vt.cmd.Wait()
+	if vt.cmd != nil {
+		vt.cmd.Process.Kill()
+		vt.cmd.Wait()
+	}
 	vt.pty.Close()
 }
 
