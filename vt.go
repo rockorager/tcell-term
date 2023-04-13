@@ -2,6 +2,8 @@ package tcellterm
 
 import (
 	"fmt"
+	"io"
+	"log"
 	"os"
 	"os/exec"
 	"strings"
@@ -20,6 +22,8 @@ type (
 
 // VT models a virtual terminal
 type VT struct {
+	Logger *log.Logger
+
 	mu sync.Mutex
 
 	activeScreen  [][]cell
@@ -67,7 +71,9 @@ const (
 )
 
 func New() *VT {
-	return &VT{}
+	return &VT{
+		Logger: log.New(io.Discard, "", log.Flags()),
+	}
 }
 
 // row, col, style, vis
@@ -273,6 +279,7 @@ func (vt *VT) Start(cmd *exec.Cmd) error {
 	go func() {
 		for {
 			seq := vt.parser.Next()
+			vt.Logger.Printf("%s\n", seq)
 			switch seq := seq.(type) {
 			case EOF:
 				vt.postEvent(&EventClosed{

@@ -120,6 +120,7 @@ func main() {
 	m.term = tcellterm.New()
 	m.term.SetSurface(m.termView)
 	m.term.Attach(m.HandleEvent)
+	m.term.Logger = log.New(f, "", log.Flags())
 	m.s.EnableMouse()
 
 	cmd := exec.Command(os.Getenv("SHELL"))
