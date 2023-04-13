@@ -8,9 +8,6 @@ import (
 )
 
 func TestHandleMouse(t *testing.T) {
-	vt := New()
-	vt.mode |= mouseButtons
-
 	tests := []struct {
 		name     string
 		mode     mode
