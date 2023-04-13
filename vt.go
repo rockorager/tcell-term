@@ -275,6 +275,9 @@ func (vt *VT) Start(cmd *exec.Cmd) error {
 			seq := vt.parser.Next()
 			switch seq := seq.(type) {
 			case EOF:
+				vt.postEvent(&EventClosed{
+					EventTerminal: newEventTerminal(vt),
+				})
 				return
 			default:
 				vt.update(seq)
