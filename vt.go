@@ -23,6 +23,9 @@ type (
 // VT models a virtual terminal
 type VT struct {
 	Logger *log.Logger
+	// If true, OSC8 enables the output of OSC8 strings. Otherwise, any OSC8
+	// sequences will be stripped
+	OSC8 bool
 
 	mu sync.Mutex
 
@@ -73,7 +76,7 @@ const (
 func New() *VT {
 	return &VT{
 		Logger: log.New(io.Discard, "", log.Flags()),
-		mode: dectcem,
+		mode:   dectcem,
 	}
 }
 

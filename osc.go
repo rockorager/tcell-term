@@ -17,9 +17,11 @@ func (vt *VT) osc(data string) {
 		}
 		vt.postEvent(ev)
 	case "8":
-		url, id := osc8(val)
-		vt.cursor.attrs.Url(url)
-		vt.cursor.attrs.UrlId(id)
+		if vt.OSC8 {
+			url, id := osc8(val)
+			vt.cursor.attrs.Url(url)
+			vt.cursor.attrs.UrlId(id)
+		}
 	}
 }
 
