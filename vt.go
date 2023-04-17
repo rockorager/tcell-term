@@ -26,6 +26,9 @@ type VT struct {
 	// If true, OSC8 enables the output of OSC8 strings. Otherwise, any OSC8
 	// sequences will be stripped
 	OSC8 bool
+	// Set the TERM environment variable to be passed to the command's
+	// environment. If not set, xterm-256color will be used
+	TERM string
 
 	mu sync.Mutex
 
@@ -258,7 +261,10 @@ func (vt *VT) Start(cmd *exec.Cmd) error {
 	w, h := vt.surface.Size()
 	vt.mu.Unlock()
 
-	cmd.Env = append(os.Environ(), "TERM=xterm-256color")
+	if vt.TERM == "" {
+		vt.TERM = "xterm-256color"
+	}
+	cmd.Env = append(os.Environ(), "TERM="+vt.TERM)
 
 	// Start the command with a pty.
 	var err error
