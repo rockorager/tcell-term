@@ -73,6 +73,7 @@ const (
 func New() *VT {
 	return &VT{
 		Logger: log.New(io.Discard, "", log.Flags()),
+		mode: dectcem,
 	}
 }
 
