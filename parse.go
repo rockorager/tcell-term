@@ -828,6 +828,10 @@ func ground(r rune, p *Parser) stateFn {
 // and APC, ignoring the entire control string.
 func oscString(r rune, p *Parser) stateFn {
 	switch {
+	case is(r, 0x07):
+		p.exit()
+		p.exit = nil
+		return ground
 	case in(r, 0x00, 0x17), is(r, 0x19), in(r, 0x1C, 0x1F):
 		// ignore
 		return oscString

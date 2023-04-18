@@ -853,6 +853,15 @@ func TestOSC(t *testing.T) {
 				},
 			},
 		},
+		{
+			name:  "OSC bell terminated",
+			input: "a\x1B\x5D\ab",
+			expected: []Sequence{
+				Print('a'),
+				OSC{},
+				Print('b'),
+			},
+		},
 	}
 
 	for _, test := range tests {
