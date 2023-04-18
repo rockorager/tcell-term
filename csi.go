@@ -238,6 +238,8 @@ func (vt *VT) cup(pm []int) {
 	switch len(pm) {
 	case 0:
 		pm = []int{1, 1}
+	case 1:
+		pm = []int{pm[0], pm[0]}
 	case 2:
 	default:
 		return
