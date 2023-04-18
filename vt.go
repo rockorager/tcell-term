@@ -175,6 +175,9 @@ func (vt *VT) String() string {
 	for row := range vt.activeScreen {
 		for col := range vt.activeScreen[row] {
 			_, _ = str.WriteRune(vt.activeScreen[row][col].rune())
+			for _, comb := range vt.activeScreen[row][col].combining {
+				_, _ = str.WriteRune(comb)
+			}
 		}
 		if row < vt.height()-1 {
 			str.WriteRune('\n')
@@ -245,12 +248,12 @@ func (vt *VT) print(r rune) {
 
 	col := vt.cursor.col
 	rw := vt.cursor.row
-	w := column(runewidth.RuneWidth(r))
+	w := runewidth.RuneWidth(r)
 
 	if vt.mode&irm != 0 {
 		line := vt.activeScreen[rw]
 		for i := vt.margin.right; i > col; i -= 1 {
-			line[i] = line[i-w]
+			line[i] = line[i-column(w)]
 		}
 	}
 	if col > column(vt.width())-1 {
@@ -260,11 +263,17 @@ func (vt *VT) print(r rune) {
 		rw = row(vt.height() - 1)
 	}
 
+	if w == 0 {
+		vt.activeScreen[rw][col-1].combining = append(vt.activeScreen[rw][col-1].combining, r)
+		return
+	}
+
 	vt.activeScreen[rw][col].content = r
+	vt.activeScreen[rw][col].width = w
 	vt.activeScreen[rw][col].attrs = vt.cursor.attrs
 
 	// Set trailing cells to a space if wide rune
-	for i := column(1); i < w; i += 1 {
+	for i := column(1); i < column(w); i += 1 {
 		if col+i > vt.margin.right {
 			break
 		}
@@ -278,7 +287,7 @@ func (vt *VT) print(r rune) {
 	case col == vt.margin.right:
 		// don't move the cursor
 	default:
-		vt.cursor.col += w
+		vt.cursor.col += column(w)
 	}
 }
 
@@ -361,12 +370,12 @@ func (vt *VT) Draw() {
 	for row := 0; row < vt.height(); row += 1 {
 		for col := 0; col < vt.width(); {
 			cell := vt.activeScreen[row][col]
-			width := runewidth.RuneWidth(cell.content)
-			vt.surface.SetContent(col, row, cell.content, nil, cell.attrs)
-			if width == 0 {
-				width = 1
+			w := cell.width
+			vt.surface.SetContent(col, row, cell.content, cell.combining, cell.attrs)
+			if w == 0 {
+				w = 1
 			}
-			col += width
+			col += w
 		}
 	}
 	// for _, s := range buf.getVisibleSixels() {

@@ -136,3 +136,13 @@ func TestScrollDown(t *testing.T) {
 	vt.scrollDown(1)
 	assert.Equal(t, "  \n b", vt.String())
 }
+
+func TestCombiningRunes(t *testing.T) {
+	vt := New()
+	vt.Resize(2, 2)
+	vt.print('h')
+	vt.print(0x337)
+	vt.print(0x317)
+
+	assert.Equal(t, "h̷̗ \n  ", vt.String())
+}

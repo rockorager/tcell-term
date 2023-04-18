@@ -3,8 +3,10 @@ package tcellterm
 import "github.com/gdamore/tcell/v2"
 
 type cell struct {
-	content rune
-	attrs   tcell.Style
+	content   rune
+	combining []rune
+	width     int
+	attrs     tcell.Style
 }
 
 func (c *cell) rune() rune {
