@@ -592,4 +592,6 @@ func (vt *VT) decstbm(pm []int) {
 	}
 	vt.margin.top = row(pm[0]) - 1
 	vt.margin.bottom = row(pm[1]) - 1
+	vt.cursor.row = vt.margin.top
+	vt.cursor.col = vt.margin.left
 }
