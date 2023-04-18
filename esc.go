@@ -46,6 +46,10 @@ func (vt *VT) esc(esc string) {
 		vt.g2 = ascii
 	case "+B":
 		vt.g3 = ascii
+	case "#8":
+		// DECALN
+		// Fill the screen with capital Es
+		// Not supported
 	}
 }
 
