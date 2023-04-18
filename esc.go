@@ -51,6 +51,7 @@ func (vt *VT) esc(esc string) {
 
 // Index ESC-D
 func (vt *VT) ind() {
+	vt.lastCol = false
 	if vt.cursor.row == vt.margin.bottom {
 		vt.scrollUp(1)
 		return
@@ -72,6 +73,7 @@ func (vt *VT) hts() {
 
 // Reverse Index ESC-M
 func (vt *VT) ri() {
+	vt.lastCol = false
 	if vt.cursor.row == vt.margin.top {
 		vt.scrollDown(1)
 		return

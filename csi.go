@@ -140,6 +140,7 @@ func (vt *VT) ich(ps int) {
 // Cursur Up (CUU) CSI Ps A
 // Move cursor up in same column, stopping at top margin
 func (vt *VT) cuu(ps int) {
+	vt.lastCol = false
 	if ps == 0 {
 		ps = 1
 	}
@@ -152,6 +153,7 @@ func (vt *VT) cuu(ps int) {
 // Cursur Down (CUD) CSI Ps B
 // Move cursor down in same column, stopping at bottom margin
 func (vt *VT) cud(ps int) {
+	vt.lastCol = false
 	if ps == 0 {
 		ps = 1
 	}
@@ -164,6 +166,7 @@ func (vt *VT) cud(ps int) {
 // Cursur Forward (CUF) CSI Ps C
 // Move cursor forward Ps columns, stopping at the right margin
 func (vt *VT) cuf(ps int) {
+	vt.lastCol = false
 	if ps == 0 {
 		ps = 1
 	}
@@ -176,6 +179,7 @@ func (vt *VT) cuf(ps int) {
 // Cursur Backward (CUB) CSI Ps D
 // Move cursor backward Ps columns, stopping at the left margin
 func (vt *VT) cub(ps int) {
+	vt.lastCol = false
 	if ps == 0 {
 		ps = 1
 	}
@@ -188,6 +192,7 @@ func (vt *VT) cub(ps int) {
 // Cursor Next Line (CNL) CSI Ps E
 // Move cursor to left margin Ps lines down, scrolling if necessary
 func (vt *VT) cnl(ps int) {
+	vt.lastCol = false
 	if ps == 0 {
 		ps = 1
 	}
@@ -199,6 +204,7 @@ func (vt *VT) cnl(ps int) {
 // Cursor Preceding Line (CPL) CSI Ps F
 // Move cursor to left margin Ps lines down, scrolling if necessary
 func (vt *VT) cpl(ps int) {
+	vt.lastCol = false
 	if ps == 0 {
 		ps = 1
 	}
@@ -212,6 +218,7 @@ func (vt *VT) cpl(ps int) {
 // Move cursor to Ps column, stopping at right/left margin. Default is 1, but we
 // default to 0 since our columns our 0 indexed
 func (vt *VT) cha(ps int) {
+	vt.lastCol = false
 	if ps == 0 {
 		ps = 1
 	}
@@ -227,6 +234,7 @@ func (vt *VT) cha(ps int) {
 // Cursor Position (CUP) CSI Ps;Ps H
 // Move cursor to the absolute position
 func (vt *VT) cup(pm []int) {
+	vt.lastCol = false
 	switch len(pm) {
 	case 0:
 		pm = []int{1, 1}
@@ -244,6 +252,7 @@ func (vt *VT) cup(pm []int) {
 // Cursor Forward Tabulation (CHT) CSI Ps I
 // Move cursor forward Ps tab stops
 func (vt *VT) cht(ps int) {
+	vt.lastCol = false
 	if ps == 0 {
 		ps = 1
 	}
@@ -268,6 +277,7 @@ func (vt *VT) ed(ps int) {
 	// position. Line attribute becomes single-height, single-width for all
 	// completely erased lines.
 	case 0:
+		vt.lastCol = false
 		for r := vt.cursor.row; r < row(vt.height()); r += 1 {
 			for col := column(0); col < column(vt.width()); col += 1 {
 				if r == vt.cursor.row && col < vt.cursor.col {
@@ -282,6 +292,7 @@ func (vt *VT) ed(ps int) {
 	// cursor position. Line attribute becomes single-height, single-width
 	// for all completely erased lines.
 	case 1:
+		vt.lastCol = false
 		for r := row(0); r <= vt.cursor.row; r += 1 {
 			for col := column(0); col < column(vt.width()); col += 1 {
 				if r == vt.cursor.row && col > vt.cursor.col {
@@ -296,6 +307,7 @@ func (vt *VT) ed(ps int) {
 	// Erases the complete display. All lines are erased and changed to
 	// single-width. The cursor does not move.
 	case 2:
+		vt.lastCol = false
 		for r := row(0); r < row(vt.height()); r += 1 {
 			for col := column(0); col < column(vt.width()); col += 1 {
 				vt.activeScreen[r][col].erase(vt.cursor.attrs)
@@ -307,6 +319,7 @@ func (vt *VT) ed(ps int) {
 // Erase in Line (EL) CSI Ps K
 func (vt *VT) el(ps int) {
 	r := vt.cursor.row
+	vt.lastCol = false
 	switch ps {
 	// Erases from the cursor to the end of the line, including the cursor
 	// position. Line attribute is not affected.
@@ -339,6 +352,7 @@ func (vt *VT) el(ps int) {
 // first column. This sequence is ignored when the cursor is outside the
 // scrolling region.
 func (vt *VT) il(ps int) {
+	vt.lastCol = false
 	if vt.cursor.row < vt.margin.top {
 		return
 	}
@@ -383,6 +397,7 @@ func (vt *VT) il(ps int) {
 // the bottom of the scrolling region. The cursor is reset to the first column.
 // This sequence is ignored when the cursor is outside the scrolling region.
 func (vt *VT) dl(ps int) {
+	vt.lastCol = false
 	if vt.cursor.row < vt.margin.top {
 		return
 	}
@@ -424,6 +439,7 @@ func (vt *VT) dl(ps int) {
 // character deleted. Character attributes move with the characters. The spaces
 // created at the end of the line have all their character attributes off.
 func (vt *VT) dch(ps int) {
+	vt.lastCol = false
 	if ps == 0 {
 		ps = 1
 	}
@@ -444,6 +460,7 @@ func (vt *VT) dch(ps int) {
 // to normal. No reformatting of data on the line occurs. The cursor remains in
 // the same position.
 func (vt *VT) ech(ps int) {
+	vt.lastCol = false
 	if ps == 0 {
 		ps = 1
 	}
@@ -460,6 +477,7 @@ func (vt *VT) ech(ps int) {
 //
 // Move cursor backward Ps tabulations
 func (vt *VT) cbt(ps int) {
+	vt.lastCol = false
 	if ps == 0 {
 		ps = 1
 	}
@@ -497,6 +515,7 @@ func (vt *VT) tbc(ps int) {
 //
 // Move cursor to line Ps
 func (vt *VT) vpa(ps int) {
+	vt.lastCol = false
 	if ps == 0 {
 		ps = 1
 	}
@@ -510,6 +529,7 @@ func (vt *VT) vpa(ps int) {
 //
 // Move down Ps lines
 func (vt *VT) vpr(ps int) {
+	vt.lastCol = false
 	if ps == 0 {
 		ps = 1
 	}
@@ -523,6 +543,7 @@ func (vt *VT) vpr(ps int) {
 //
 // Move cursor to column Ps
 func (vt *VT) hpa(ps int) {
+	vt.lastCol = false
 	if ps == 0 {
 		ps = 1
 	}
@@ -536,6 +557,7 @@ func (vt *VT) hpa(ps int) {
 //
 // Move cursor to the right Ps times
 func (vt *VT) hpr(ps int) {
+	vt.lastCol = false
 	if ps == 0 {
 		ps = 1
 	}
@@ -549,6 +571,7 @@ func (vt *VT) hpr(ps int) {
 //
 // Repeat preceding graphic character Ps times
 func (vt *VT) rep(ps int) {
+	vt.lastCol = false
 	col := vt.cursor.col
 	if col == 0 {
 		return
@@ -561,6 +584,7 @@ func (vt *VT) rep(ps int) {
 
 // Set top and bottom margins CSI Ps ; Ps r
 func (vt *VT) decstbm(pm []int) {
+	vt.lastCol = false
 	if len(pm) != 2 {
 		vt.margin.top = 0
 		vt.margin.bottom = row(vt.height()) - 1

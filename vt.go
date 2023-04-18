@@ -42,6 +42,8 @@ type VT struct {
 	mode    mode
 	sShift  charset
 	tabStop []column
+	// lastCol is a flag indicating we printed in the last col
+	lastCol bool
 
 	g0 charset
 	g1 charset
@@ -202,6 +204,7 @@ func (vt *VT) Resize(w int, h int) {
 	vt.margin.bottom = row(h) - 1
 	vt.margin.left = 0
 	vt.margin.right = column(w) - 1
+	vt.lastCol = false
 	switch vt.mode & smcup {
 	case 0:
 		vt.activeScreen = vt.primaryScreen
@@ -236,6 +239,10 @@ func (vt *VT) print(r rune) {
 	// If we are single-shifted, move the previous charset into the current
 	vt.charset = vt.sShift
 
+	if vt.cursor.col == vt.margin.right && vt.lastCol {
+		vt.nel()
+	}
+
 	col := vt.cursor.col
 	row := vt.cursor.row
 	w := column(runewidth.RuneWidth(r))
@@ -261,7 +268,7 @@ func (vt *VT) print(r rune) {
 
 	switch {
 	case vt.mode&decawm != 0 && col == vt.margin.right:
-		vt.nel()
+		vt.lastCol = true
 	case col == vt.margin.right:
 		// don't move the cursor
 	default:

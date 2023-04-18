@@ -27,6 +27,7 @@ func (vt *VT) c0(r rune) {
 
 // Backspace 0x08
 func (vt *VT) bs() {
+	vt.lastCol = false
 	if vt.cursor.col == vt.margin.left {
 		return
 	}
@@ -60,5 +61,6 @@ func (vt *VT) ff() {
 
 // Carriage return 0x13
 func (vt *VT) cr() {
+	vt.lastCol = false
 	vt.cursor.col = vt.margin.left
 }

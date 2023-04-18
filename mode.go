@@ -103,6 +103,7 @@ func (vt *VT) decset(params []int) {
 			vt.mode |= decom
 		case 7:
 			vt.mode |= decawm
+			vt.lastCol = false
 		case 8:
 			vt.mode |= decarm
 		case 25:
@@ -146,6 +147,7 @@ func (vt *VT) decrst(params []int) {
 			vt.mode &^= decom
 		case 7:
 			vt.mode &^= decawm
+			vt.lastCol = false
 		case 8:
 			vt.mode &^= decarm
 		case 25:
