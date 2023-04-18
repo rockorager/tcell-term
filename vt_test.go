@@ -30,6 +30,7 @@ func TestString(t *testing.T) {
 func TestPrint(t *testing.T) {
 	t.Run("No modes", func(t *testing.T) {
 		vt := New()
+		vt.mode = 0
 		w := 2
 		h := 1
 		vt.Resize(w, h)
@@ -91,6 +92,7 @@ func TestPrint(t *testing.T) {
 
 func TestScrollUp(t *testing.T) {
 	vt := New()
+	vt.mode = 0
 	w := 2
 	h := 2
 	vt.Resize(w, h)
@@ -108,6 +110,7 @@ func TestScrollUp(t *testing.T) {
 
 	vt.cursor.row = 4
 	vt.print('v')
+	vt.lastCol = false
 	vt.cursor.row = 7
 	vt.print('t')
 	vt.margin.bottom = 5
@@ -127,6 +130,7 @@ func TestScrollDown(t *testing.T) {
 	assert.Equal(t, "vt\n  ", vt.String())
 	vt.scrollDown(1)
 	assert.Equal(t, "  \nvt", vt.String())
+	vt.lastCol = false
 	vt.print('b')
 	assert.Equal(t, " b\nvt", vt.String())
 	vt.scrollDown(1)
