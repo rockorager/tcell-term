@@ -163,6 +163,10 @@ func (vt *VT) decrst(params []int) {
 		case 1007:
 			vt.mode &^= altScroll
 		case 1049:
+			if vt.mode&smcup != 0 {
+				// Only clear if we were in the alternate
+				vt.ed(2)
+			}
 			vt.decrc()
 			vt.activeScreen = vt.primaryScreen
 			vt.mode &^= smcup
