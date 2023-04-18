@@ -195,19 +195,37 @@ func (vt *VT) Cursor() (int, int, tcell.CursorStyle, bool) {
 }
 
 func (vt *VT) Resize(w int, h int) {
+	primary := vt.primaryScreen
 	vt.altScreen = make([][]cell, h)
 	vt.primaryScreen = make([][]cell, h)
 	for i := range vt.altScreen {
 		vt.altScreen[i] = make([]cell, w)
 		vt.primaryScreen[i] = make([]cell, w)
 	}
-	vt.cursor.col = 0
-	vt.cursor.row = 0
-	vt.margin.top = 0
+	last := vt.cursor.row
 	vt.margin.bottom = row(h) - 1
-	vt.margin.left = 0
 	vt.margin.right = column(w) - 1
+	vt.cursor.row = 0
+	vt.cursor.col = 0
 	vt.lastCol = false
+	vt.activeScreen = vt.primaryScreen
+
+	// transfer primary to new, skipping the last row
+	for row := 0; row < len(primary); row += 1 {
+		if row == int(last) {
+			break
+		}
+		wrapped := false
+		for col := 0; col < len(primary[0]); col += 1 {
+			cell := primary[row][col]
+			vt.cursor.attrs = cell.attrs
+			vt.print(cell.content)
+			wrapped = cell.wrapped
+		}
+		if !wrapped {
+			vt.nel()
+		}
+	}
 	switch vt.mode & smcup {
 	case 0:
 		vt.activeScreen = vt.primaryScreen
@@ -243,6 +261,9 @@ func (vt *VT) print(r rune) {
 	vt.charset = vt.sShift
 
 	if vt.cursor.col == vt.margin.right && vt.lastCol {
+		col := vt.cursor.col
+		rw := vt.cursor.row
+		vt.activeScreen[rw][col].wrapped = true
 		vt.nel()
 	}
 
@@ -264,13 +285,19 @@ func (vt *VT) print(r rune) {
 	}
 
 	if w == 0 {
+		if col-1 < 0 {
+			return
+		}
 		vt.activeScreen[rw][col-1].combining = append(vt.activeScreen[rw][col-1].combining, r)
 		return
 	}
+	cell := cell{
+		content: r,
+		width:   w,
+		attrs:   vt.cursor.attrs,
+	}
 
-	vt.activeScreen[rw][col].content = r
-	vt.activeScreen[rw][col].width = w
-	vt.activeScreen[rw][col].attrs = vt.cursor.attrs
+	vt.activeScreen[rw][col] = cell
 
 	// Set trailing cells to a space if wide rune
 	for i := column(1); i < column(w); i += 1 {

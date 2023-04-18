@@ -7,6 +7,7 @@ type cell struct {
 	combining []rune
 	width     int
 	attrs     tcell.Style
+	wrapped   bool
 }
 
 func (c *cell) rune() rune {
@@ -22,11 +23,11 @@ func (c *cell) rune() rune {
 // applies the background color of the passed style
 func (c *cell) erase(s tcell.Style) {
 	_, bg, _ := s.Decompose()
-	c.content = ' '
+	c.content = 0
 	c.attrs = tcell.StyleDefault.Background(bg)
 }
 
 // selectiveErase removes the cell content, but keeps the attributes
 func (c *cell) selectiveErase() {
-	c.content = ' '
+	c.content = 0
 }
