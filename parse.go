@@ -210,6 +210,10 @@ func (p *Parser) csiDispatch(r rune) {
 		// a length of 5
 		paramsRGB := strings.Split(param, ":")
 		switch len(paramsRGB) {
+		case 2:
+			// Could be an underline sequence CSI 4:Ps m. We only
+			// support underline, so drop the second param
+			paramStr = append(paramStr, paramsRGB[0])
 		case 5:
 			paramStr = append(paramStr, paramsRGB...)
 		case 6:
