@@ -16,11 +16,12 @@ func (c *cell) rune() rune {
 
 // Erasing removes characters from the screen without affecting other characters
 // on the screen. Erased characters are lost. The cursor position does not
-// change when erasing characters or lines. Erasing a character also erases any
-// character attribute of the character and applies the passed style
+// change when erasing characters or lines. Erasing resets the attributes, but
+// applies the background color of the passed style
 func (c *cell) erase(s tcell.Style) {
+	_, bg, _ := s.Decompose()
 	c.content = ' '
-	c.attrs = s
+	c.attrs = tcell.StyleDefault.Background(bg)
 }
 
 // selectiveErase removes the cell content, but keeps the attributes
