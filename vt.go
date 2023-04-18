@@ -142,6 +142,8 @@ func (vt *VT) Start(cmd *exec.Cmd) error {
 func (vt *VT) update(seq Sequence) {
 	vt.mu.Lock()
 	defer vt.mu.Unlock()
+	vt.Logger.Printf("%s\n", seq)
+	vt.Logger.Printf("row=%d, col=%d", vt.cursor.row, vt.cursor.col)
 	switch seq := seq.(type) {
 	case Print:
 		vt.print(rune(seq))

@@ -29,6 +29,12 @@ func (vt *VT) c0(r rune) {
 func (vt *VT) bs() {
 	vt.lastCol = false
 	if vt.cursor.col == vt.margin.left {
+		if vt.cursor.row == vt.margin.top {
+			return
+		}
+		// reverse wrap
+		vt.cursor.col = vt.margin.right
+		vt.cursor.row -= 1
 		return
 	}
 	vt.cursor.col -= 1
