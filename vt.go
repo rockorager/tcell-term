@@ -79,16 +79,62 @@ const (
 func New() *VT {
 	return &VT{
 		Logger: log.New(io.Discard, "", log.Flags()),
-		mode:   dectcem,
+		mode:   decawm | dectcem,
 	}
 }
 
-// row, col, style, vis
-func (vt *VT) Cursor() (int, int, tcell.CursorStyle, bool) {
+// Start starts the terminal with the specified command. Start returns when the
+// command has been successfully started.
+func (vt *VT) Start(cmd *exec.Cmd) error {
+	if cmd == nil {
+		return fmt.Errorf("no command to run")
+	}
+	vt.cmd = cmd
 	vt.mu.Lock()
-	defer vt.mu.Unlock()
-	vis := vt.mode&dectcem > 0
-	return int(vt.cursor.row), int(vt.cursor.col), vt.cursor.style, vis
+	w, h := vt.surface.Size()
+	vt.mu.Unlock()
+
+	if vt.TERM == "" {
+		vt.TERM = "xterm-256color"
+	}
+	cmd.Env = append(os.Environ(), "TERM="+vt.TERM)
+
+	// Start the command with a pty.
+	var err error
+	winsize := pty.Winsize{
+		Cols: uint16(w),
+		Rows: uint16(h),
+	}
+	vt.pty, err = pty.StartWithAttrs(
+		cmd,
+		&winsize,
+		&syscall.SysProcAttr{
+			Setsid:  true,
+			Setctty: true,
+			Ctty:    1,
+		})
+	if err != nil {
+		return err
+	}
+	vt.Logger.Printf("Size w=%d, h=%d", w, h)
+
+	vt.Resize(w, h)
+	vt.parser = NewParser(vt.pty)
+	go func() {
+		for {
+			seq := vt.parser.Next()
+			switch seq := seq.(type) {
+			case EOF:
+				vt.postEvent(&EventClosed{
+					EventTerminal: newEventTerminal(vt),
+				})
+				return
+			default:
+				vt.update(seq)
+			}
+		}
+	}()
+	return nil
 }
 
 func (vt *VT) update(seq Sequence) {
@@ -133,6 +179,14 @@ func (vt *VT) String() string {
 		}
 	}
 	return str.String()
+}
+
+// row, col, style, vis
+func (vt *VT) Cursor() (int, int, tcell.CursorStyle, bool) {
+	vt.mu.Lock()
+	defer vt.mu.Unlock()
+	vis := vt.mode&dectcem > 0
+	return int(vt.cursor.row), int(vt.cursor.col), vt.cursor.style, vis
 }
 
 func (vt *VT) Resize(w int, h int) {
