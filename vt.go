@@ -244,26 +244,32 @@ func (vt *VT) print(r rune) {
 	}
 
 	col := vt.cursor.col
-	row := vt.cursor.row
+	rw := vt.cursor.row
 	w := column(runewidth.RuneWidth(r))
 
 	if vt.mode&irm != 0 {
-		line := vt.activeScreen[row]
+		line := vt.activeScreen[rw]
 		for i := vt.margin.right; i > col; i -= 1 {
 			line[i] = line[i-w]
 		}
 	}
+	if col > column(vt.width())-1 {
+		col = column(vt.width()) - 1
+	}
+	if rw > row(vt.height()-1) {
+		rw = row(vt.height() - 1)
+	}
 
-	vt.activeScreen[row][col].content = r
-	vt.activeScreen[row][col].attrs = vt.cursor.attrs
+	vt.activeScreen[rw][col].content = r
+	vt.activeScreen[rw][col].attrs = vt.cursor.attrs
 
 	// Set trailing cells to a space if wide rune
 	for i := column(1); i < w; i += 1 {
 		if col+i > vt.margin.right {
 			break
 		}
-		vt.activeScreen[row][col+i].content = ' '
-		vt.activeScreen[row][col+i].attrs = vt.cursor.attrs
+		vt.activeScreen[rw][col+i].content = ' '
+		vt.activeScreen[rw][col+i].attrs = vt.cursor.attrs
 	}
 
 	switch {
