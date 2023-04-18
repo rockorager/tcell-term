@@ -81,6 +81,7 @@ const (
 func New() *VT {
 	return &VT{
 		Logger: log.New(io.Discard, "", log.Flags()),
+		OSC8:   true,
 		mode:   decawm | dectcem,
 	}
 }
@@ -118,7 +119,6 @@ func (vt *VT) Start(cmd *exec.Cmd) error {
 	if err != nil {
 		return err
 	}
-	vt.Logger.Printf("Size w=%d, h=%d", w, h)
 
 	vt.Resize(w, h)
 	vt.parser = NewParser(vt.pty)
@@ -142,8 +142,6 @@ func (vt *VT) Start(cmd *exec.Cmd) error {
 func (vt *VT) update(seq Sequence) {
 	vt.mu.Lock()
 	defer vt.mu.Unlock()
-	vt.Logger.Printf("%s\n", seq)
-	vt.Logger.Printf("row=%d, col=%d", vt.cursor.row, vt.cursor.col)
 	switch seq := seq.(type) {
 	case Print:
 		vt.print(rune(seq))
