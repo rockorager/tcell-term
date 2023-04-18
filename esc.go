@@ -1,9 +1,5 @@
 package tcellterm
 
-import (
-	"github.com/gdamore/tcell/v2"
-)
-
 func (vt *VT) esc(esc string) {
 	switch esc {
 	case "7":
@@ -115,6 +111,16 @@ func (vt *VT) decrc() {
 func (vt *VT) ris() {
 	w := vt.width()
 	h := vt.height()
-	vt.Resize(w, h)
-	vt.cursor.attrs = tcell.StyleDefault
+	vt.altScreen = make([][]cell, h)
+	vt.primaryScreen = make([][]cell, h)
+	for i := range vt.altScreen {
+		vt.altScreen[i] = make([]cell, w)
+		vt.primaryScreen[i] = make([]cell, w)
+	}
+	vt.margin.bottom = row(h) - 1
+	vt.margin.right = column(w) - 1
+	vt.cursor.row = 0
+	vt.cursor.col = 0
+	vt.lastCol = false
+	vt.activeScreen = vt.primaryScreen
 }
