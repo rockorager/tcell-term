@@ -19,9 +19,9 @@ func (vt *VT) c0(r rune) {
 	case 0x0D:
 		vt.cr()
 	case 0x0E:
-		vt.charset = vt.g1
+		vt.charsets.selected = g1
 	case 0x0F:
-		vt.charset = vt.g0
+		vt.charsets.selected = g2
 	}
 }
 

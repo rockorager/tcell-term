@@ -101,9 +101,9 @@ func (vt *VT) csi(csi string, params []int) {
 	case "r":
 		vt.decstbm(params)
 	case "s":
-		vt.savedCursor = vt.cursor
+		vt.decsc()
 	case "u":
-		vt.cursor = vt.savedCursor
+		vt.decrc()
 	case " q":
 		ps(params)
 		vt.cursor.style = tcell.CursorStyle(ps(params))

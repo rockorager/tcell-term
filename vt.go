@@ -36,23 +36,17 @@ type VT struct {
 	altScreen     [][]cell
 	primaryScreen [][]cell
 
-	charset charset
-	cursor  cursor
-	margin  margin
-	mode    mode
-	sShift  charset
-	tabStop []column
+	charsets charsets
+	cursor   cursor
+	margin   margin
+	mode     mode
+	sShift   charset
+	tabStop  []column
 	// lastCol is a flag indicating we printed in the last col
 	lastCol bool
 
-	g0 charset
-	g1 charset
-	g2 charset
-	g3 charset
-
-	savedCursor cursor
-	savedDECAWM bool
-	savedDECOM  bool
+	primaryState cursorState
+	altState     cursorState
 
 	cmd          *exec.Cmd
 	dirty        bool
@@ -64,6 +58,13 @@ type VT struct {
 	mouseBtn tcell.ButtonMask
 }
 
+type cursorState struct {
+	cursor   cursor
+	decawm   bool
+	decom    bool
+	charsets charsets
+}
+
 type margin struct {
 	top    row
 	bottom row
@@ -71,18 +72,41 @@ type margin struct {
 	right  column
 }
 
-type charset int
-
-const (
-	ascii charset = iota
-	decSpecialAndLineDrawing
-)
-
 func New() *VT {
 	return &VT{
 		Logger: log.New(io.Discard, "", log.Flags()),
 		OSC8:   true,
-		mode:   decawm | dectcem,
+		charsets: charsets{
+			designations: map[charsetDesignator]charset{
+				g0: ascii,
+				g1: ascii,
+				g2: ascii,
+				g3: ascii,
+			},
+		},
+		mode: decawm | dectcem,
+		primaryState: cursorState{
+			charsets: charsets{
+				designations: map[charsetDesignator]charset{
+					g0: ascii,
+					g1: ascii,
+					g2: ascii,
+					g3: ascii,
+				},
+			},
+			decawm: true,
+		},
+		altState: cursorState{
+			charsets: charsets{
+				designations: map[charsetDesignator]charset{
+					g0: ascii,
+					g1: ascii,
+					g2: ascii,
+					g3: ascii,
+				},
+			},
+			decawm: true,
+		},
 	}
 }
 
@@ -253,12 +277,17 @@ func (vt *VT) height() int {
 // print sets the current cell contents to the given rune. The attributes will
 // be copied from the current cursor attributes
 func (vt *VT) print(r rune) {
-	if vt.charset == decSpecialAndLineDrawing {
-		r = decSpecial[r]
+	if vt.charsets.designations[vt.charsets.selected] == decSpecialAndLineDrawing {
+		shifted, ok := decSpecial[r]
+		if ok {
+			r = shifted
+		}
 	}
 
 	// If we are single-shifted, move the previous charset into the current
-	vt.charset = vt.sShift
+	if vt.charsets.singleShift {
+		vt.charsets.selected = vt.charsets.saved
+	}
 
 	if vt.cursor.col == vt.margin.right && vt.lastCol {
 		col := vt.cursor.col

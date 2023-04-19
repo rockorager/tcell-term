@@ -1,5 +1,28 @@
 package tcellterm
 
+type charset int
+
+const (
+	ascii charset = iota
+	decSpecialAndLineDrawing
+)
+
+type charsets struct {
+	selected     charsetDesignator
+	saved        charsetDesignator
+	designations map[charsetDesignator]charset
+	singleShift  bool
+}
+
+type charsetDesignator int
+
+const (
+	g0 = iota
+	g1
+	g2
+	g3
+)
+
 var decSpecial = map[rune]rune{
 	0x5f: 0x00A0, // NO-BREAK SPACE
 	0x60: 0x25C6, // BLACK DIAMOND
