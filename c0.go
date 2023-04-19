@@ -42,7 +42,7 @@ func (vt *VT) bs() {
 
 // Horizontal tab 0x09
 func (vt *VT) ht() {
-	// TODO
+	vt.cht(1)
 }
 
 // Linefeed 0x10

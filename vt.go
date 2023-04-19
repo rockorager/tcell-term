@@ -73,6 +73,10 @@ type margin struct {
 }
 
 func New() *VT {
+	tabs := []column{}
+	for i := 7; i < (50 * 7); i += 8 {
+		tabs = append(tabs, column(i))
+	}
 	return &VT{
 		Logger: log.New(io.Discard, "", log.Flags()),
 		OSC8:   true,
@@ -107,6 +111,7 @@ func New() *VT {
 			},
 			decawm: true,
 		},
+		tabStop: tabs,
 	}
 }
 

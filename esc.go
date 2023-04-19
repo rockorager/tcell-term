@@ -180,4 +180,8 @@ func (vt *VT) ris() {
 		},
 	}
 	vt.mode = decawm | dectcem
+	vt.tabStop = []column{}
+	for i := 7; i < (50 * 7); i += 8 {
+		vt.tabStop = append(vt.tabStop, column(i))
+	}
 }
