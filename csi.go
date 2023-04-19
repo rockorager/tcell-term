@@ -143,8 +143,11 @@ func (vt *VT) ich(ps int) {
 	row := vt.cursor.row
 	line := vt.activeScreen[row]
 	for i := vt.margin.right; i > col; i -= 1 {
-		if col+i >= column(vt.width()-1) {
+		if col+i > column(vt.width()-1) {
 			break
+		}
+		if (i - column(ps)) < 0 {
+			continue
 		}
 		line[i] = line[i-column(ps)]
 	}
@@ -152,7 +155,10 @@ func (vt *VT) ich(ps int) {
 		if int(col)+i >= (vt.width() - 1) {
 			break
 		}
-		line[col+column(i)] = cell{content: ' '}
+		line[col+column(i)] = cell{
+			content: ' ',
+			width: 1,
+		}
 	}
 }
 

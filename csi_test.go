@@ -9,6 +9,7 @@ import (
 func TestICH(t *testing.T) {
 	vt := New()
 	vt.Resize(2, 1)
+	vt.mode = 0
 
 	vt.print('a')
 	vt.print('b')
