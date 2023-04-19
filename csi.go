@@ -1,6 +1,11 @@
 package tcellterm
 
-import "github.com/gdamore/tcell/v2"
+import (
+	"fmt"
+	"strings"
+
+	"github.com/gdamore/tcell/v2"
+)
 
 func (vt *VT) csi(csi string, params []int) {
 	switch csi {
@@ -61,11 +66,19 @@ func (vt *VT) csi(csi string, params []int) {
 	case "b":
 		vt.rep(ps(params))
 	case "c":
-		// TODO
 		// Send device attributes
-		// Write to PTY:
-		// 0x1B[?62;4;22c
-		// VT220 with sixel and ANSI color support
+		resp := strings.Builder{}
+		// Response introducer
+		resp.WriteString("\x1B[?")
+		// We are a vt220
+		resp.WriteString("62;")
+		// We have sixel support
+		resp.WriteString("4;")
+		// We have ANSI color support
+		resp.WriteString("22")
+		// Response terminator
+		resp.WriteString("c")
+		vt.pty.WriteString(resp.String())
 	case "d":
 		vt.vpa(ps(params))
 	case "e":
@@ -86,17 +99,17 @@ func (vt *VT) csi(csi string, params []int) {
 	case "m":
 		vt.sgr(params)
 	case "n":
-		// TODO
 		// Send device status report
 		switch ps(params) {
 		case 5:
-			// write to PTY:
-			// 0x1b[0n
 			// "Ok"
+			vt.pty.WriteString("\x1B[0n")
 		case 6:
 			// report cursor position
 			// This sequence can be identical to a function key?
 			// CSI r ; c R
+			resp := fmt.Sprintf("\x1B[%d;%dR", vt.cursor.row+1, vt.cursor.col+1)
+			vt.pty.WriteString(resp)
 		}
 	case "r":
 		vt.decstbm(params)
