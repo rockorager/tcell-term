@@ -52,9 +52,14 @@ func (m *model) Update(ev tcell.Event) {
 		m.term.Draw()
 		m.title.Draw()
 
-		row, col, style, _ := m.term.Cursor()
-		m.s.SetCursorStyle(style)
-		m.s.ShowCursor(col, row+2)
+		row, col, style, vis := m.term.Cursor()
+		if vis {
+			m.s.SetCursorStyle(style)
+			m.s.ShowCursor(col, row+2)
+
+		} else {
+			m.s.HideCursor()
+		}
 		m.s.Show()
 		return
 	case *tcellterm.EventClosed:
