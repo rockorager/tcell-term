@@ -397,7 +397,7 @@ func (vt *VT) il(ps int) {
 	// insert the blank lines (we do this by erasing the cells)
 	for r := row(0); r < row(ps); r += 1 {
 		for col := vt.margin.left; col <= vt.margin.right; col += 1 {
-			vt.activeScreen[vt.cursor.row+r][col].erase(tcell.StyleDefault)
+			vt.activeScreen[vt.cursor.row+r][col].erase(vt.cursor.attrs)
 		}
 	}
 	vt.cursor.col = vt.margin.left
@@ -440,7 +440,7 @@ func (vt *VT) dl(ps int) {
 			continue
 		}
 		for col := vt.margin.left; col <= vt.margin.right; col += 1 {
-			vt.activeScreen[r][col].erase(tcell.StyleDefault)
+			vt.activeScreen[r][col].erase(vt.cursor.attrs)
 		}
 	}
 	vt.cursor.col = vt.margin.left
@@ -461,7 +461,7 @@ func (vt *VT) dch(ps int) {
 	row := vt.cursor.row
 	for col := vt.cursor.col; col <= vt.margin.right; col += 1 {
 		if col+column(ps) > vt.margin.right {
-			vt.activeScreen[row][col].erase(tcell.StyleDefault)
+			vt.activeScreen[row][col].erase(vt.cursor.attrs)
 			continue
 		}
 		vt.activeScreen[row][col] = vt.activeScreen[row][col+column(ps)]

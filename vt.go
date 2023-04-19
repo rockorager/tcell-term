@@ -363,7 +363,9 @@ func (vt *VT) scrollUp(n int) {
 			continue
 		}
 		if row+n > int(vt.margin.bottom) {
-			vt.activeScreen[row] = make([]cell, len(vt.activeScreen[row]))
+			for col := vt.margin.left; col <= vt.margin.right; col += 1 {
+				vt.activeScreen[row][col].erase(vt.cursor.attrs)
+			}
 			continue
 		}
 		copy(vt.activeScreen[row], vt.activeScreen[row+n])
@@ -374,7 +376,9 @@ func (vt *VT) scrollUp(n int) {
 func (vt *VT) scrollDown(n int) {
 	for r := vt.margin.bottom; r >= vt.margin.top; r -= 1 {
 		if r-row(n) < 0 {
-			vt.activeScreen[r] = make([]cell, len(vt.activeScreen[r]))
+			for col := vt.margin.left; col <= vt.margin.right; col += 1 {
+				vt.activeScreen[r][col].erase(vt.cursor.attrs)
+			}
 			continue
 		}
 		copy(vt.activeScreen[r], vt.activeScreen[r-row(n)])
