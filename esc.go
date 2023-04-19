@@ -79,7 +79,7 @@ func (vt *VT) hts() {
 // Reverse Index ESC-M
 func (vt *VT) ri() {
 	vt.lastCol = false
-	if vt.cursor.row <= 0 {
+	if vt.cursor.row < 0 {
 		return
 	}
 	if vt.cursor.row == vt.margin.top {
