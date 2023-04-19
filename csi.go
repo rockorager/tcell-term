@@ -130,7 +130,7 @@ func (vt *VT) ich(ps int) {
 	row := vt.cursor.row
 	line := vt.activeScreen[row]
 	for i := vt.margin.right; i > col; i -= 1 {
-		if col+i >= column(vt.width() - 1) {
+		if col+i >= column(vt.width()-1) {
 			break
 		}
 		line[i] = line[i-column(ps)]
@@ -150,9 +150,13 @@ func (vt *VT) cuu(ps int) {
 	if ps == 0 {
 		ps = 1
 	}
+	clamp := row(0)
+	if vt.cursor.row >= vt.margin.top {
+		clamp = vt.margin.top
+	}
 	vt.cursor.row -= row(ps)
-	if vt.cursor.row < vt.margin.top {
-		vt.cursor.row = vt.margin.top
+	if vt.cursor.row < clamp {
+		vt.cursor.row = clamp
 	}
 }
 
@@ -600,6 +604,6 @@ func (vt *VT) decstbm(pm []int) {
 	}
 	vt.margin.top = row(pm[0]) - 1
 	vt.margin.bottom = row(pm[1]) - 1
-	vt.cursor.row = vt.margin.top
-	vt.cursor.col = vt.margin.left
+	vt.cursor.row = 0
+	vt.cursor.col = 0
 }
