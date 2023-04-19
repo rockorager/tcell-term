@@ -256,8 +256,11 @@ func (vt *VT) cup(pm []int) {
 	}
 	vt.cursor.row = row(pm[0] - 1)
 	vt.cursor.col = column(pm[1] - 1)
-	if vt.cursor.col > vt.margin.right {
-		vt.cursor.col = vt.margin.right
+	if vt.cursor.col > column(vt.width()-1) {
+		vt.cursor.col = column(vt.width() - 1)
+	}
+	if vt.cursor.row > row(vt.height()-1) {
+		vt.cursor.row = row(vt.height() - 1)
 	}
 }
 
