@@ -11,7 +11,7 @@ func (vt *VT) osc(data string) {
 	}
 	switch selector {
 	case "0", "2":
-		ev := EventTitle{
+		ev := &EventTitle{
 			EventTerminal: newEventTerminal(vt),
 			title:         val,
 		}
