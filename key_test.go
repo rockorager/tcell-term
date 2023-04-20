@@ -85,6 +85,24 @@ func TestKey(t *testing.T) {
 			),
 			expected: "\n",
 		},
+		{
+			name: "shift + f5",
+			event: tcell.NewEventKey(
+				tcell.KeyF5,
+				0,
+				tcell.ModShift,
+			),
+			expected: "\x1B[15;2~",
+		},
+		{
+			name: "shift + arrow",
+			event: tcell.NewEventKey(
+				tcell.KeyRight,
+				0,
+				tcell.ModShift,
+			),
+			expected: "\x1B[1;2C",
+		},
 	}
 
 	for _, test := range tests {

@@ -2,6 +2,96 @@ package tcellterm
 
 import "github.com/gdamore/tcell/v2/terminfo"
 
+// extended terminfo defines additional keys in a singular place, if missing
+// from the terminfo.Terminfo struct
+type extendedTerminfo struct {
+	KeyAltInsert string
+	KeyAltDelete string
+	KeyAltPgUp   string
+	KeyAltPgDown string
+
+	KeyCtrlInsert string
+	KeyCtrlDelete string
+	KeyCtrlPgUp   string
+	KeyCtrlPgDown string
+
+	KeyCtrlShfInsert string
+	KeyCtrlShfDelete string
+	KeyCtrlShfPgUp   string
+	KeyCtrlShfPgDown string
+
+	KeyAltShfInsert string
+	KeyAltShfDelete string
+	KeyAltShfPgUp   string
+	KeyAltShfPgDown string
+
+	KeyCtrlAltUp     string
+	KeyCtrlAltDown   string
+	KeyCtrlAltRight  string
+	KeyCtrlAltLeft   string
+	KeyCtrlAltHome   string
+	KeyCtrlAltEnd    string
+	KeyCtrlAltInsert string
+	KeyCtrlAltDelete string
+	KeyCtrlAltPgUp   string
+	KeyCtrlAltPgDown string
+
+	KeyCtrlAltShfUp     string
+	KeyCtrlAltShfDown   string
+	KeyCtrlAltShfRight  string
+	KeyCtrlAltShfLeft   string
+	KeyCtrlAltShfHome   string
+	KeyCtrlAltShfEnd    string
+	KeyCtrlAltShfInsert string
+	KeyCtrlAltShfDelete string
+	KeyCtrlAltShfPgUp   string
+	KeyCtrlAltShfPgDown string
+}
+
+var extendedInfo = &extendedTerminfo{
+	KeyAltInsert: "\x1b[2;3~",
+	KeyAltDelete: "\x1b[3;3~",
+	KeyAltPgUp:   "\x1b[5;3~",
+	KeyAltPgDown: "\x1b[6;3~",
+
+	KeyCtrlInsert: "\x1b[2;5~",
+	KeyCtrlDelete: "\x1b[3;5~",
+	KeyCtrlPgUp:   "\x1b[5;5~",
+	KeyCtrlPgDown: "\x1b[6;5~",
+
+	KeyCtrlShfInsert: "\x1b[2;6~",
+	KeyCtrlShfDelete: "\x1b[3;6~",
+	KeyCtrlShfPgUp:   "\x1b[5;6~",
+	KeyCtrlShfPgDown: "\x1b[6;6~",
+
+	KeyAltShfInsert: "\x1b[2;4~",
+	KeyAltShfDelete: "\x1b[3;4~",
+	KeyAltShfPgUp:   "\x1b[5;4~",
+	KeyAltShfPgDown: "\x1b[6;4~",
+
+	KeyCtrlAltUp:     "\x1b[1;7A",
+	KeyCtrlAltDown:   "\x1b[1;7B",
+	KeyCtrlAltRight:  "\x1b[1;7C",
+	KeyCtrlAltLeft:   "\x1b[1;7D",
+	KeyCtrlAltHome:   "\x1b[1;7H",
+	KeyCtrlAltEnd:    "\x1b[1;7F",
+	KeyCtrlAltInsert: "\x1b[2;7~",
+	KeyCtrlAltDelete: "\x1b[3;7~",
+	KeyCtrlAltPgUp:   "\x1b[5;7~",
+	KeyCtrlAltPgDown: "\x1b[6;7~",
+
+	KeyCtrlAltShfUp:     "\x1b[1;8A",
+	KeyCtrlAltShfDown:   "\x1b[1;8B",
+	KeyCtrlAltShfRight:  "\x1b[1;8C",
+	KeyCtrlAltShfLeft:   "\x1b[1;8D",
+	KeyCtrlAltShfHome:   "\x1b[1;8H",
+	KeyCtrlAltShfEnd:    "\x1b[1;8F",
+	KeyCtrlAltShfInsert: "\x1b[2;8~",
+	KeyCtrlAltShfDelete: "\x1b[3;8~",
+	KeyCtrlAltShfPgUp:   "\x1b[5;8~",
+	KeyCtrlAltShfPgDown: "\x1b[6;8~",
+}
+
 var info = &terminfo.Terminfo{
 	Name:        "tcell-term",
 	Aliases:     []string{},
@@ -96,7 +186,7 @@ var info = &terminfo.Terminfo{
 	KeyF61:       "\x1b[1;4P",           // kf61
 	KeyF62:       "\x1b[1;4Q",           // kf62
 	KeyF63:       "\x1b[1;4R",           // kf63
-	KeyF64:       "",                    // kf64
+	KeyF64:       "\x1b[1;4S",           // kf64
 	KeyInsert:    "\x1b[2~",             // kich1
 	KeyDelete:    "\x1b[3~",             // kdch1
 	KeyHome:      "\x1bOH",              // khome
