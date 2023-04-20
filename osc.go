@@ -19,7 +19,6 @@ func (vt *VT) osc(data string) {
 	case "8":
 		if vt.OSC8 {
 			url, id := osc8(val)
-			vt.Logger.Printf("setting osc8 %s\n", url)
 			vt.cursor.attrs = vt.cursor.attrs.Url(url)
 			vt.cursor.attrs = vt.cursor.attrs.UrlId(id)
 		}
