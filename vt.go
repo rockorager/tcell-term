@@ -375,7 +375,7 @@ func (vt *VT) scrollUp(n int) {
 // scrollDown shifts all lines down by n rows.
 func (vt *VT) scrollDown(n int) {
 	for r := vt.margin.bottom; r >= vt.margin.top; r -= 1 {
-		if r-row(n) < 0 {
+		if r-row(n) < vt.margin.top {
 			for col := vt.margin.left; col <= vt.margin.right; col += 1 {
 				vt.activeScreen[r][col].erase(vt.cursor.attrs)
 			}
