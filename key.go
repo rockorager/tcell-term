@@ -46,7 +46,7 @@ func keyCode(ev *tcell.EventKey) string {
 	case tcell.ModAlt:
 		switch ev.Key() {
 		case tcell.KeyRune:
-			key.WriteString("\x1b[")
+			key.WriteString("\x1b")
 			key.WriteRune(ev.Rune())
 		case tcell.KeyUp:
 			key.WriteString(info.KeyAltUp)
