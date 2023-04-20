@@ -146,28 +146,28 @@ var info = &terminfo.Terminfo{
 	KeyCtrlDown:             "\x1b[1;5B", // ctrl-left
 	KeyCtrlRight:            "\x1b[1;5C", // ctrl-right
 	KeyCtrlLeft:             "\x1b[1;5D", // ctrl-left
-	KeyMetaUp:               "",          // meta-up
-	KeyMetaDown:             "",          // meta-left
-	KeyMetaRight:            "",          // meta-right
-	KeyMetaLeft:             "",          // meta-left
+	KeyMetaUp:               "\x1b[1;9A", // meta-up
+	KeyMetaDown:             "\x1b[1;9B", // meta-left
+	KeyMetaRight:            "\x1b[1;9C", // meta-right
+	KeyMetaLeft:             "\x1b[1;9D", // meta-left
 	KeyAltUp:                "\x1b[1;3A", // alt-up
 	KeyAltDown:              "\x1b[1;3B", // alt-left
 	KeyAltRight:             "\x1b[1;3C", // alt-right
 	KeyAltLeft:              "\x1b[1;3D", // alt-left
 	KeyCtrlHome:             "\x1b[1;5H",
 	KeyCtrlEnd:              "\x1b[1;5F",
-	KeyMetaHome:             "",
-	KeyMetaEnd:              "",
-	KeyAltHome:              "\x1b[1;9H",
-	KeyAltEnd:               "\x1b[1;9F",
+	KeyMetaHome:             "\x1b[1;9H",
+	KeyMetaEnd:              "\x1b[1;9F",
+	KeyAltHome:              "\x1b[1;3H",
+	KeyAltEnd:               "\x1b[1;3F",
 	KeyAltShfUp:             "\x1b[1;4A",
 	KeyAltShfDown:           "\x1b[1;4B",
 	KeyAltShfRight:          "\x1b[1;4C",
 	KeyAltShfLeft:           "\x1b[1;4D",
-	KeyMetaShfUp:            "",
-	KeyMetaShfDown:          "",
-	KeyMetaShfLeft:          "",
-	KeyMetaShfRight:         "",
+	KeyMetaShfUp:            "\x1b[1;10A",
+	KeyMetaShfDown:          "\x1b[1;10B",
+	KeyMetaShfLeft:          "\x1b[1;10C",
+	KeyMetaShfRight:         "\x1b[1;10D",
 	KeyCtrlShfUp:            "\x1b[1;6A",
 	KeyCtrlShfDown:          "\x1b[1;6B",
 	KeyCtrlShfRight:         "\x1b[1;6C",
@@ -176,8 +176,8 @@ var info = &terminfo.Terminfo{
 	KeyCtrlShfEnd:           "\x1b[1;6F",
 	KeyAltShfHome:           "\x1b[1;4H",
 	KeyAltShfEnd:            "\x1b[1;4F",
-	KeyMetaShfHome:          "",
-	KeyMetaShfEnd:           "",
+	KeyMetaShfHome:          "\x1b[1;10H",
+	KeyMetaShfEnd:           "\x1b[1;10F",
 	EnablePaste:             "\x1b[?2004h", // BE
 	DisablePaste:            "\x1b[?2004l", // BD
 	PasteStart:              "\x1b[200~",   // PS
