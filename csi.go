@@ -157,7 +157,7 @@ func (vt *VT) ich(ps int) {
 		}
 		line[col+column(i)] = cell{
 			content: ' ',
-			width: 1,
+			width:   1,
 		}
 	}
 }

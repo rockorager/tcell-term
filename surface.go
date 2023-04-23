@@ -10,6 +10,6 @@ type Surface interface {
 	// location.
 	SetContent(x int, y int, ch rune, comb []rune, style tcell.Style)
 
-	// Size represents the visible size.	
+	// Size represents the visible size.
 	Size() (int, int)
 }
