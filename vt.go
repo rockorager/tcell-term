@@ -111,7 +111,8 @@ func New() *VT {
 			},
 			decawm: true,
 		},
-		tabStop: tabs,
+		tabStop:      tabs,
+		eventHandler: func(ev tcell.Event) { return },
 	}
 }
 
