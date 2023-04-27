@@ -268,7 +268,7 @@ func (vt *VT) cup(pm []int) {
 	case 0:
 		pm = []int{1, 1}
 	case 1:
-		pm = []int{pm[0], pm[0]}
+		pm = []int{pm[0], 1}
 	case 2:
 	default:
 		return
