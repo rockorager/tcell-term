@@ -81,6 +81,10 @@ func (m *model) Update(ev tcell.Event) {
 		return
 	case *tcellterm.EventMouseMode:
 		m.s.EnableMouse(ev.Flags()...)
+	case *tcellterm.EventPanic:
+		m.s.Clear()
+		m.s.Fini()
+		fmt.Println(ev.Error)
 	}
 	return
 }

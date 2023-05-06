@@ -62,3 +62,8 @@ func (ev *EventMouseMode) Flags() []tcell.MouseFlags {
 type EventBell struct {
 	*EventTerminal
 }
+
+type EventPanic struct {
+	*EventTerminal
+	Error error
+}

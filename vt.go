@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"runtime/debug"
 	"strings"
 	"sync"
 	"syscall"
@@ -153,6 +154,7 @@ func (vt *VT) Start(cmd *exec.Cmd) error {
 	vt.Resize(w, h)
 	vt.parser = NewParser(vt.pty)
 	go func() {
+		defer vt.recover()
 		for {
 			seq := vt.parser.Next()
 			switch seq := seq.(type) {
@@ -214,6 +216,24 @@ func (vt *VT) String() string {
 		}
 	}
 	return str.String()
+}
+
+func (vt *VT) recover() {
+	err := recover()
+	if err == nil {
+		return
+	}
+	ret := strings.Builder{}
+	ret.WriteString(fmt.Sprintf("cursor row=%d col=%d\n", vt.cursor.row, vt.cursor.col))
+	ret.WriteString(fmt.Sprintf("margin left=%d right=%d\n", vt.margin.left, vt.margin.right))
+	ret.WriteString(fmt.Sprintf("%s\n", err))
+	ret.Write(debug.Stack())
+
+	vt.postEvent(&EventPanic{
+		EventTerminal: newEventTerminal(vt),
+		Error:         fmt.Errorf(ret.String()),
+	})
+	vt.Close()
 }
 
 // row, col, style, vis
