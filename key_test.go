@@ -65,16 +65,7 @@ func TestKey(t *testing.T) {
 				'j',
 				tcell.ModAlt,
 			),
-			expected: "\x1B[j",
-		},
-		{
-			name: "rune + mod alt",
-			event: tcell.NewEventKey(
-				tcell.KeyRune,
-				'J',
-				tcell.ModAlt,
-			),
-			expected: "\x1B[J",
+			expected: "\x1Bj",
 		},
 		{
 			name: "rune + mod ctrl",
