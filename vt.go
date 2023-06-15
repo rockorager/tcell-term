@@ -55,6 +55,7 @@ type VT struct {
 	parser       *Parser
 	pty          *os.File
 	surface      Surface
+	events       chan tcell.Event
 
 	mouseBtn tcell.ButtonMask
 }
@@ -114,6 +115,9 @@ func New() *VT {
 		},
 		tabStop:      tabs,
 		eventHandler: func(ev tcell.Event) { return },
+		// Buffering to 2 events. If there is ever a case where one
+		// sequence can trigger two events, this should be increased
+		events: make(chan tcell.Event, 2),
 	}
 }
 
@@ -156,15 +160,20 @@ func (vt *VT) Start(cmd *exec.Cmd) error {
 	go func() {
 		defer vt.recover()
 		for {
-			seq := vt.parser.Next()
-			switch seq := seq.(type) {
-			case EOF:
-				vt.postEvent(&EventClosed{
-					EventTerminal: newEventTerminal(vt),
-				})
-				return
+			select {
+			case ev := <-vt.events:
+				vt.eventHandler(ev)
 			default:
-				vt.update(seq)
+				seq := vt.parser.Next()
+				switch seq := seq.(type) {
+				case EOF:
+					vt.eventHandler(&EventClosed{
+						EventTerminal: newEventTerminal(vt),
+					})
+					return
+				default:
+					vt.update(seq)
+				}
 			}
 		}
 	}()
@@ -431,7 +440,7 @@ func (vt *VT) Detach() {
 }
 
 func (vt *VT) postEvent(ev tcell.Event) {
-	vt.eventHandler(ev)
+	vt.events <- ev
 }
 
 func (vt *VT) SetSurface(srf Surface) {
