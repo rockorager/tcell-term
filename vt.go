@@ -135,7 +135,12 @@ func (vt *VT) Start(cmd *exec.Cmd) error {
 	if vt.TERM == "" {
 		vt.TERM = "xterm-256color"
 	}
-	cmd.Env = append(os.Environ(), "TERM="+vt.TERM)
+
+	env := os.Environ()
+	if cmd.Env != nil {
+		env = cmd.Env
+	}
+	cmd.Env = append(env, "TERM="+vt.TERM)
 
 	// Start the command with a pty.
 	var err error
